@@ -61,4 +61,4 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 📜 License & Copyright
 
-Copyright &copy; 2026 Youssef Almghraby (Team The Penguins). All rights reserved.
+Copyright &copy; 2026 Youssef Almghraby. All rights reserved.
