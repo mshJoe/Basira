@@ -1,6 +1,11 @@
+<div align="center">
+  <img src="src/assets/Basira%20logo%20white.png" alt="Basira Logo" width="400" />
+
 # 👁️‍🗨️ Basira Dashboard UI
 
 > A modern, high-performance dashboard web application built to deliver a seamless user experience and intuitive UI for the Amd Hackathon.
+
+<br>
 
 [![Live Demo](https://img.shields.io/badge/Live_Preview-Website-blue?style=for-the-badge&logo=vercel)](https://basira-kappa.vercel.app/)
 [![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)]()
@@ -9,6 +14,8 @@
 
 ## 🌐 Live Website
 **[basira-kappa.vercel.app](https://basira-kappa.vercel.app/)**
+
+</div>
 
 ---
 
