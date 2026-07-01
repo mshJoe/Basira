@@ -20,6 +20,23 @@ const TEXT = {
   },
 };
 
+/* ═══════════════════════════════════════════════════════
+   Static color map — avoids dynamic class interpolation.
+   Each zone maps to a concrete hex that is guaranteed visible
+   in both dark and light modes.
+   ═══════════════════════════════════════════════════════ */
+const ZONE_COLORS = {
+  safe:    '#10b981', // emerald-500 — bright green, visible on dark bg
+  warning: '#f59e0b', // amber-500
+  danger:  '#ef4444', // red-500
+};
+
+function getZone(value) {
+  if (value >= 65) return 'safe';
+  if (value >= 40) return 'warning';
+  return 'danger';
+}
+
 /**
  * WhatIfSlider — adjusts a collection rate percentage.
  * Drives AlertBadge severity + CashFlowChart forecast reactively.
@@ -31,15 +48,8 @@ export default function WhatIfSlider({ value = 50, onChange }) {
   const { lang } = useThemeLang();
   const t = TEXT[lang];
 
-  // Derive accent colour from value for the filled track + thumb glow
-  const accentColor =
-    value >= 65
-      ? 'var(--clr-success)'
-      : value >= 40
-        ? '#f59e0b'
-        : '#ef4444';
-
-  // Percentage for the filled portion of the track
+  const zone = getZone(value);
+  const accentColor = ZONE_COLORS[zone];
   const pct = `${value}%`;
 
   return (
