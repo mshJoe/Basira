@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'SF Pro AR Display Semibold';
+  src: url('/fonts/SF-Pro-AR-Display-Semibold.woff2') format('woff2'),
+       url('/fonts/SF-Pro-AR-Display-Semibold.woff') format('woff'),
+       url('/fonts/SF-Pro-AR-Display-Semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro AR';
+  src: url('/fonts/SF-Pro-AR-Regular.woff2') format('woff2'),
+       url('/fonts/SF-Pro-AR-Regular.woff') format('woff'),
+       url('/fonts/SF-Pro-AR-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ═══════════════════════════════════════════════════════
    Basira — Premium FinTech Design System
    World-class dark-mode dashboard with RTL Arabic support
@@ -7,6 +27,7 @@
 
 /* ─── Custom Tailwind Theme ─── */
 @theme {
+  --font-sans: 'SF Pro AR Display Semibold', 'SF Pro AR', 'Tajawal', 'Inter', system-ui, sans-serif;
   --color-basira-bg: #0B0F19;
   --color-basira-surface: rgba(15, 23, 42, 0.6);
   --color-basira-surface-solid: #0f172a;
@@ -37,7 +58,7 @@ html {
 }
 
 body {
-  font-family: 'Tajawal', 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background: var(--color-basira-bg);
   color: var(--color-basira-text);
   min-height: 100vh;
@@ -45,7 +66,7 @@ body {
 }
 
 [dir="ltr"] body {
-  font-family: 'Inter', 'Tajawal', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', var(--font-sans);
 }
 
 /* Subtle radial gradient background for depth */

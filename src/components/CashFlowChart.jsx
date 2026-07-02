@@ -186,20 +186,27 @@ function CustomTooltip({ active, payload, label, colors, t }) {
 /* ═══════════════════════════════════════════════════════
    CashFlowChart Component — Premium AreaChart
    ═══════════════════════════════════════════════════════ */
-export default function CashFlowChart({ collectionRate = 50 }) {
+export default function CashFlowChart({ collectionRate = 50, showForecastOnly = false, className = '' }) {
   const { theme, lang } = useThemeLang();
   const t = TEXT[lang];
   const colors = THEMES[theme];
 
-  const data = useMemo(
-    () => generateMockData(lang, collectionRate),
-    [lang, collectionRate],
-  );
+  const fullData = useMemo(() => generateMockData(lang, collectionRate), [lang, collectionRate]);
 
-  const bridgeIndex = data.findIndex((d) => d.forecast !== null);
+  const data = useMemo(() => {
+    if (showForecastOnly) {
+      return fullData.filter(d => d.forecast !== null).map(d => ({
+        ...d,
+        historical: null,
+      }));
+    }
+    return fullData;
+  }, [fullData, showForecastOnly]);
+
+  const bridgeIndex = useMemo(() => fullData.findIndex((d) => d.forecast !== null), [fullData]);
 
   return (
-    <div className="chart-section">
+    <div className={`chart-section ${className}`}>
       {/* Header */}
       <div className="chart-header">
         <div>
@@ -208,13 +215,15 @@ export default function CashFlowChart({ collectionRate = 50 }) {
         </div>
         {/* Legend pills */}
         <div className="chart-legend-pills">
-          <span className="chart-legend-pill">
-            <span
-              className="chart-legend-pill__line"
-              style={{ background: colors.historicalLine }}
-            />
-            {t.historical}
-          </span>
+          {!showForecastOnly && (
+            <span className="chart-legend-pill">
+              <span
+                className="chart-legend-pill__line"
+                style={{ background: colors.historicalLine }}
+              />
+              {t.historical}
+            </span>
+          )}
           <span className="chart-legend-pill">
             <span
               className="chart-legend-pill__line chart-legend-pill__line--dashed"
@@ -289,39 +298,41 @@ export default function CashFlowChart({ collectionRate = 50 }) {
               cursor={{ stroke: colors.referenceLine, strokeWidth: 1 }}
             />
 
-            {/* "Today" reference line at the bridge point */}
-            <ReferenceLine
-              x={data[bridgeIndex]?.name}
-              stroke={colors.referenceLine}
-              strokeDasharray="4 4"
-              label={{
-                value: t.todayLabel,
-                position: 'top',
-                fill: colors.axis,
-                fontSize: 11,
-                fontWeight: 500,
-              }}
-            />
+            {!showForecastOnly && (
+              <ReferenceLine
+                x={fullData[bridgeIndex]?.name}
+                stroke={colors.referenceLine}
+                strokeDasharray="4 4"
+                label={{
+                  value: t.todayLabel,
+                  position: 'top',
+                  fill: colors.axis,
+                  fontSize: 11,
+                  fontWeight: 500,
+                }}
+              />
+            )}
 
-            {/* Historical — smooth area with gradient fill */}
-            <Area
-              type="monotone"
-              dataKey="historical"
-              stroke={colors.historicalLine}
-              strokeWidth={2.5}
-              fill="url(#grad-historical)"
-              dot={false}
-              activeDot={{
-                r: 5,
-                fill: colors.historicalLine,
-                stroke: colors.tooltipBg,
-                strokeWidth: 2,
-              }}
-              connectNulls={false}
-              filter="url(#glow-hist)"
-              isAnimationActive={true}
-              animationDuration={1200}
-            />
+            {!showForecastOnly && (
+              <Area
+                type="monotone"
+                dataKey="historical"
+                stroke={colors.historicalLine}
+                strokeWidth={2.5}
+                fill="url(#grad-historical)"
+                dot={false}
+                activeDot={{
+                  r: 5,
+                  fill: colors.historicalLine,
+                  stroke: colors.tooltipBg,
+                  strokeWidth: 2,
+                }}
+                connectNulls={false}
+                filter="url(#glow-hist)"
+                isAnimationActive={true}
+                animationDuration={1200}
+              />
+            )}
 
             {/* Forecast — dashed area with gradient fill */}
             <Area

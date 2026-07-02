@@ -11,9 +11,6 @@ import {
 import { useThemeLang } from '../context/ThemeLangProvider';
 import MetricCard from '../components/MetricCard';
 import CashFlowChart from '../components/CashFlowChart';
-import AlertBadge from '../components/AlertBadge';
-
-
 
 /* ═══════════════════════════════════════════════════════
    Derive alert state from collection rate
@@ -64,28 +61,84 @@ export default function AnalyticsPage() {
     <div className="fade-in">
       {/* ─── KPI Cards Grid ─── */}
       <div className="kpi-grid">
-        {/* Card 1: Alert Status */}
-        <MetricCard
-          title={isArabic ? 'مؤشر الإنذار الرئيسي' : 'Main Alert Status'}
-          value={
-            <span
-              className="status-pill"
+        {/* Card 1: Merged Alert Status & Countdown */}
+        <div 
+          className="metric-card" 
+          style={{ 
+            '--metric-accent': liquidityStatus.color,
+            '--metric-accent-bg': `${liquidityStatus.color}1a`,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          {/* Top Header matching exact flex layout of sibling cards */}
+          <div className="metric-card__header">
+            <span className="metric-card__title">
+              {isArabic ? 'مؤشر الإنذار الرئيسي' : 'Main Alert Status'}
+            </span>
+            <div
+              className="metric-card__icon-wrap"
               style={{
-                background: `${liquidityStatus.color}18`,
+                background: `${liquidityStatus.color}1a`,
                 color: liquidityStatus.color,
               }}
             >
+              <Activity size={18} strokeWidth={1.8} />
+            </div>
+          </div>
+          
+          {/* Bottom Area: Circular Ring + Badge + Subtitle */}
+          <div className="flex items-center gap-4 mt-2">
+            {/* Circular Indicator */}
+            <div 
+              style={{ 
+                width: '56px',
+                height: '56px', 
+                flexShrink: 0,
+                borderColor: liquidityStatus.color,
+                boxShadow: `0 0 10px ${liquidityStatus.color}30, inset 0 0 4px ${liquidityStatus.color}30`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                borderWidth: '2.5px',
+                borderStyle: 'solid'
+              }}
+            >
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: '1.1' }}>
+                <span style={{ color: liquidityStatus.color, fontSize: '1.2rem', fontWeight: 'bold' }}>
+                  {alert.days}
+                </span>
+                <span style={{ fontSize: '0.55rem', color: 'var(--color-basira-text-muted)', marginTop: '2px' }}>
+                  {isArabic ? (alert.days === 1 ? 'يوم' : 'متبقي') : (alert.days === 1 ? 'day' : 'left')}
+                </span>
+              </div>
+            </div>
+
+            {/* Vertical Stack: Badge & Text */}
+            <div className="flex flex-col items-start gap-2">
               <span
-                className="status-pill__dot"
-                style={{ background: liquidityStatus.color }}
-              />
-              {isArabic ? liquidityStatus.ar : liquidityStatus.en}
-            </span>
-          }
-          subtitle={isArabic ? 'حالة السيولة الحالية' : 'Current liquidity status'}
-          icon={Activity}
-          accentColor={liquidityStatus.color}
-        />
+                className="status-pill"
+                style={{
+                  background: `${liquidityStatus.color}18`,
+                  color: liquidityStatus.color,
+                  padding: '0.2rem 0.6rem',
+                  fontSize: '0.75rem',
+                  margin: 0
+                }}
+              >
+                <span className="status-pill__dot" style={{ background: liquidityStatus.color, width: '6px', height: '6px' }} />
+                {isArabic ? liquidityStatus.ar : liquidityStatus.en}
+              </span>
+
+              <p className="metric-card__subtitle" style={{ fontSize: '0.85rem', lineHeight: '1.4', margin: 0 }}>
+                {isArabic 
+                  ? alert.level === 'green' ? 'السيولة في مستوى مستقر وآمن' : alert.level === 'yellow' ? 'انخفاض ملحوظ في مستوى السيولة' : 'مستوى حرج — تدخل فوري مطلوب'
+                  : alert.level === 'green' ? 'Liquidity is at a stable, safe level' : alert.level === 'yellow' ? 'Noticeable decline in liquidity level' : 'Critical level — immediate action required'}
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Card 2: Operational Balance */}
         <MetricCard
@@ -123,11 +176,6 @@ export default function AnalyticsPage() {
           icon={AlertTriangle}
           accentColor="#f59e0b"
         />
-      </div>
-
-      {/* ─── Alert Badge ─── */}
-      <div className="alerts-row">
-        <AlertBadge level={alert.level} daysRemaining={alert.days} />
       </div>
 
 
