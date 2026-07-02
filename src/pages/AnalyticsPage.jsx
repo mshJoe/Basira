@@ -13,44 +13,7 @@ import MetricCard from '../components/MetricCard';
 import CashFlowChart from '../components/CashFlowChart';
 import AlertBadge from '../components/AlertBadge';
 
-import { RecommendationSection } from '../components/RecommendationCard';
 
-/* ─── Sample recommendation data ─── */
-const RECOMMENDATIONS = [
-  {
-    icon: TrendingUp,
-    titleAr: 'حَصّل مستحقات العميل الرئيسي هذا الأسبوع',
-    titleEn: 'Collect Key Client Receivables This Week',
-    descriptionAr:
-      'تحليل بصيرة يُظهر أن تحصيل ٧٠٪ من المستحقات المتأخرة سيرفع الرصيد التشغيلي بمقدار ١٢٠,٠٠٠ ﷼ خلال ٧ أيام.',
-    descriptionEn:
-      'Basira analysis shows collecting 70% of overdue receivables will increase operational balance by 120,000 SAR within 7 days.',
-    tags: ['highPriority', 'cashflow'],
-    accentKey: 'accent',
-  },
-  {
-    icon: ShieldAlert,
-    titleAr: 'مراجعة حدود الائتمان مع الموردين',
-    titleEn: 'Review Supplier Credit Limits',
-    descriptionAr:
-      'البيانات تُظهر إمكانية تحسين شروط الائتمان مع ٣ موردين رئيسيين لتقليل المخاطر بنسبة ١٥٪.',
-    descriptionEn:
-      'Data indicates an opportunity to optimize credit terms with 3 key suppliers, reducing risk exposure by 15%.',
-    tags: ['medPriority', 'risk'],
-    accentKey: 'warning',
-  },
-  {
-    icon: PiggyBank,
-    titleAr: 'تحويل الفائض إلى استثمار قصير الأجل',
-    titleEn: 'Redirect Surplus to Short-Term Investment',
-    descriptionAr:
-      'الفائض النقدي الحالي يمكن استثماره في أدوات قصيرة الأجل لتحقيق عائد إضافي بدون مخاطر عالية.',
-    descriptionEn:
-      'Current cash surplus can be invested in short-term instruments to generate additional yield with minimal risk.',
-    tags: ['automated', 'saving'],
-    accentKey: 'success',
-  },
-];
 
 /* ═══════════════════════════════════════════════════════
    Derive alert state from collection rate
@@ -71,7 +34,7 @@ function deriveAlertFromRate(rate) {
 /**
  * DashboardPage — Main dashboard view with KPI cards, chart, alerts & recommendations.
  */
-export default function DashboardPage() {
+export default function AnalyticsPage() {
   const { lang } = useThemeLang();
   const isArabic = lang === 'ar';
 
@@ -171,8 +134,6 @@ export default function DashboardPage() {
       {/* ─── Predictive Cash Flow Chart ─── */}
       <CashFlowChart collectionRate={collectionRate} />
 
-      {/* ─── AI Recommendations ─── */}
-      <RecommendationSection recommendations={RECOMMENDATIONS} />
     </div>
   );
 }

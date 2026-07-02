@@ -26,9 +26,9 @@ const TEXT = {
    in both dark and light modes.
    ═══════════════════════════════════════════════════════ */
 const ZONE_COLORS = {
-  safe:    '#10b981', // emerald-500 — bright green, visible on dark bg
+  safe: '#10b981', // emerald-500 — bright green, visible on dark bg
   warning: '#f59e0b', // amber-500
-  danger:  '#ef4444', // red-500
+  danger: '#ef4444', // red-500
 };
 
 function getZone(value) {

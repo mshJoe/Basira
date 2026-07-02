@@ -113,7 +113,7 @@ export default function SimulationPage() {
           >
             {cashDelta >= 0 ? '+' : ''}
             {isArabic
-              ? `${cashDelta.toLocaleString('ar-SA')} ﷼`
+              ? `${cashDelta.toLocaleString('ar-SA').replace(/٬/g, ',')} ﷼`
               : `${cashDelta.toLocaleString()} SAR`}
           </p>
           <p className="sim-feedback-card__detail">

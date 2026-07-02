@@ -1110,7 +1110,7 @@ body::before {
   );
 }
 
-:root[data-theme="light"] [dir="rtl"] .whatif-slider__input {
+:root[data-theme="light"][dir="rtl"] .whatif-slider__input {
   background: linear-gradient(
     to left,
     var(--slider-accent) 0%,

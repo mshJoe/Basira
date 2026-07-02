@@ -9,6 +9,7 @@ import logoBlueEng from '../assets/Basira logo blue eng.png';
 
 /* ─── Pages ─── */
 import DashboardPage from '../pages/DashboardPage';
+import AnalyticsPage from '../pages/AnalyticsPage';
 import FileUploadPage from '../pages/FileUploadPage';
 import SimulationPage from '../pages/SimulationPage';
 import AIChatPage from '../pages/AIChatPage';
@@ -74,8 +75,7 @@ export default function AppLayout() {
       case 'dashboard':
         return <DashboardPage />;
       case 'analytics':
-        // Analytics shares the dashboard view for now
-        return <DashboardPage />;
+        return <AnalyticsPage />;
       case 'upload':
         return <FileUploadPage />;
       case 'simulation':
