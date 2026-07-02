@@ -1,21 +1,11 @@
 @import "tailwindcss";
 
-@font-face {
-  font-family: 'SF Pro AR Display Semibold';
-  src: url('/fonts/SF-Pro-AR-Display-Semibold.woff2') format('woff2'),
-       url('/fonts/SF-Pro-AR-Display-Semibold.woff') format('woff'),
-       url('/fonts/SF-Pro-AR-Display-Semibold.ttf') format('truetype');
-  font-weight: 600;
-  font-style: normal;
-  font-display: swap;
-}
+@custom-variant dark (&:where(.dark, .dark *));
 
 @font-face {
   font-family: 'SF Pro AR';
-  src: url('/fonts/SF-Pro-AR-Regular.woff2') format('woff2'),
-       url('/fonts/SF-Pro-AR-Regular.woff') format('woff'),
-       url('/fonts/SF-Pro-AR-Regular.ttf') format('truetype');
-  font-weight: 400;
+  src: url('/fonts/SF-Pro-AR.ttf') format('truetype');
+  font-weight: normal;
   font-style: normal;
   font-display: swap;
 }
@@ -27,7 +17,7 @@
 
 /* ─── Custom Tailwind Theme ─── */
 @theme {
-  --font-sans: 'SF Pro AR Display Semibold', 'SF Pro AR', 'Tajawal', 'Inter', system-ui, sans-serif;
+  --font-sans: 'SF Pro AR', 'Tajawal', 'Inter', system-ui, sans-serif;
   --color-basira-bg: #0B0F19;
   --color-basira-surface: rgba(15, 23, 42, 0.6);
   --color-basira-surface-solid: #0f172a;
@@ -57,12 +47,13 @@ html {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  font-family: var(--font-sans);
-  background: var(--color-basira-bg);
-  color: var(--color-basira-text);
-  min-height: 100vh;
-  overflow-x: hidden;
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+    @apply bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-white transition-colors duration-300;
+  }
 }
 
 [dir="ltr"] body {

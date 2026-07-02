@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Send, Sparkles } from 'lucide-react';
+import { Send, Sparkles, Plus, ArrowLeft } from 'lucide-react';
 import { useThemeLang } from '../context/ThemeLangProvider';
 
 /* ═══════════════════════════════════════════════════════
@@ -50,8 +50,9 @@ function renderText(text) {
  * AIChatPage — Demo AI chat interface with BasiraAI.
  */
 export default function AIChatPage() {
-  const { lang } = useThemeLang();
+  const { lang, theme } = useThemeLang();
   const isArabic = lang === 'ar';
+  const isDark = theme === 'dark';
   
   // Start with empty messages to trigger the new Initial Empty State
   const [messages, setMessages] = useState([]);
@@ -94,12 +95,12 @@ export default function AIChatPage() {
 
   const renderInputBar = (isCentered = false) => (
     <div 
-      className={`chat-input-bar ${isCentered ? 'w-full max-w-2xl mx-auto rounded-2xl' : ''}`}
-      style={isCentered ? { border: '1px solid rgba(51, 65, 85, 0.4)', background: 'rgba(15, 23, 42, 0.4)' } : {}}
+      className={`chat-input-bar ${isCentered ? `w-full max-w-2xl mx-auto rounded-2xl !py-2 border ${isDark ? 'bg-[#131825] border-gray-800' : 'bg-white border-gray-300'}` : ''}`}
     >
       <input
         type="text"
-        className="chat-input-bar__input"
+        className={`chat-input-bar__input ${isCentered ? (isDark ? 'text-white placeholder-gray-500' : 'text-slate-900 placeholder-gray-400') : ''}`}
+        style={isCentered ? { border: 'none', background: 'transparent', boxShadow: 'none' } : {}}
         placeholder={
           isArabic
             ? 'اكتب سؤالك هنا...'
@@ -160,27 +161,58 @@ export default function AIChatPage() {
       <div className="chat-container">
         {messages.length === 0 ? (
           /* Initial Empty State */
-          <div className="flex flex-col items-center justify-center h-full w-full p-6 text-center fade-in">
-            <div className="mb-6 rounded-full p-4 bg-slate-800/30 text-blue-400 ring-1 ring-slate-700/50">
-              <Sparkles size={36} strokeWidth={1.5} />
-            </div>
-
-            <h1 className="text-3xl md:text-4xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-              {isArabic ? 'كيف أستطيع مساعدتك اليوم، يوسف؟' : 'How can I help you today, Youssef?'}
+          <div className="flex flex-col items-center justify-center w-full min-h-[70vh] mx-auto px-4 gap-8">
+            {/* Title */}
+            <h1 className="text-3xl md:text-4xl font-bold text-center text-slate-900 dark:text-white">
+              ابدأ التحدث مع <span className="text-blue-500">BasiraAI</span>
             </h1>
 
-            {/* Centered Input Bar */}
-            {renderInputBar(true)}
+            {/* Input Bar Container */}
+            <div className="flex items-center w-full max-w-2xl bg-white dark:bg-[#131825] border border-gray-300 dark:border-gray-700 rounded-full shadow-sm px-2 py-2 focus-within:ring-2 focus-within:ring-blue-500/50 transition-all mx-auto">
+              
+              {/* Plus Button */}
+              <button className="flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors shrink-0">
+                <Plus size={20} />
+              </button>
 
-            {/* Suggestion Pills */}
-            <div className="mt-8 flex flex-wrap justify-center gap-3 max-w-3xl">
-              {suggestions.map((sug, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleSend(sug)}
-                  className="px-5 py-2.5 rounded-full bg-slate-800/50 border border-slate-700/50 text-[0.85rem] text-slate-300 hover:bg-slate-700/80 hover:border-slate-600 hover:text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+              {/* Input Field */}
+              <input
+                type="text"
+                className="flex-1 bg-transparent outline-none px-4 text-center text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+                placeholder="اسأل بصيرة عن السيولة، التحصيل، والخطر، وخذ اقتراحات سريعة للتنفيذ"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSend(inputValue);
+                  }
+                }}
+              />
+
+              {/* Send Button */}
+              <button 
+                className="flex items-center justify-center w-10 h-10 bg-blue-600 dark:bg-blue-600 text-white rounded-full hover:bg-blue-700 dark:hover:bg-blue-500 transition-colors shrink-0"
+                onClick={() => handleSend(inputValue)}
+              >
+                <ArrowLeft size={18} />
+              </button>
+            </div>
+
+            {/* Suggested Questions */}
+            <div className="flex flex-wrap justify-center items-center gap-4 w-full max-w-3xl mt-6 mx-auto">
+              {[
+                "وش أول خطوة تنصحني فيها الآن؟",
+                "وش أفضل قرار خلال 7 أيام القادمة؟",
+                "كيف أرفع نسبة السيولة؟",
+                "وش أكثر بند سبب ضغط على السيولة؟"
+              ].map((suggestion, index) => (
+                <button 
+                  key={index}
+                  onClick={() => handleSend(suggestion)}
+                  className="!px-6 !py-3 !inline-flex items-center justify-center whitespace-nowrap box-border bg-transparent dark:bg-[#131825] border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium shadow-sm transition-all duration-300 ease-out transform hover:-translate-y-1 hover:shadow-md hover:!border-blue-500 hover:text-blue-600 dark:hover:!border-blue-400 dark:hover:text-blue-400 dark:hover:bg-slate-800"
                 >
-                  {sug}
+                  {suggestion}
                 </button>
               ))}
             </div>
