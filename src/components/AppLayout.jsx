@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, User } from 'lucide-react';
 import { useThemeLang } from '../context/ThemeLangProvider';
 import Sidebar, { SidebarMobileToggle } from './Sidebar';
 import logoWhite from '../assets/Basira logo white.png';
@@ -13,6 +13,8 @@ import AnalyticsPage from '../pages/AnalyticsPage';
 import FileUploadPage from '../pages/FileUploadPage';
 import SimulationPage from '../pages/SimulationPage';
 import AIChatPage from '../pages/AIChatPage';
+import LoginPage from '../pages/LoginPage';
+import SignupPage from '../pages/SignupPage';
 
 /* ═══════════════════════════════════════════════════════
    Page title/subtitle definitions
@@ -87,6 +89,16 @@ export default function AppLayout() {
     }
   }
 
+  const isFullScreenPage = activePage === 'login' || activePage === 'signup';
+
+  if (isFullScreenPage) {
+    return (
+      <div className="bg-slate-50 dark:bg-[#0B0F19]">
+        {activePage === 'login' ? <LoginPage onNavigate={setActivePage} /> : <SignupPage onNavigate={setActivePage} />}
+      </div>
+    );
+  }
+
   return (
     <div className="app-layout">
       {/* Mobile toggle */}
@@ -123,6 +135,18 @@ export default function AppLayout() {
             >
               <span className="lang-toggle__label">
                 {isArabic ? 'EN' : 'AR'}
+              </span>
+            </button>
+
+            {/* User Profile Button */}
+            <button
+              className="toggle-btn w-[38px] h-[38px]"
+              onClick={() => setActivePage('login')}
+              aria-label={isArabic ? 'حساب المستخدم' : 'User Profile'}
+              title={isArabic ? 'حساب المستخدم' : 'User Profile'}
+            >
+              <span className="flex items-center justify-center">
+                <User size={18} strokeWidth={1.8} />
               </span>
             </button>
 

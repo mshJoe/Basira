@@ -164,7 +164,7 @@ export default function AIChatPage() {
           <div className="flex flex-col items-center justify-center w-full min-h-[70vh] mx-auto px-4 gap-8">
             {/* Title */}
             <h1 className="text-3xl md:text-4xl font-bold text-center text-slate-900 dark:text-white">
-              ابدأ التحدث مع <span className="text-blue-500">BasiraAI</span>
+              {isArabic ? 'ابدأ التحدث مع ' : 'Start chatting with '}<span className="text-blue-500">BasiraAI</span>
             </h1>
 
             {/* Input Bar Container */}
@@ -179,7 +179,9 @@ export default function AIChatPage() {
               <input
                 type="text"
                 className="flex-1 bg-transparent outline-none px-4 text-center text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
-                placeholder="اسأل بصيرة عن السيولة، التحصيل، والخطر، وخذ اقتراحات سريعة للتنفيذ"
+                placeholder={isArabic 
+                  ? 'اسأل بصيرة عن السيولة، التحصيل، والمخاطر، واحصل على اقتراحات سريعة للتنفيذ...' 
+                  : 'Ask Basira about liquidity, collection, and risk, and get quick actionable suggestions...'}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={(e) => {
@@ -201,12 +203,17 @@ export default function AIChatPage() {
 
             {/* Suggested Questions */}
             <div className="flex flex-wrap justify-center items-center gap-4 w-full max-w-3xl mt-6 mx-auto">
-              {[
-                "وش أول خطوة تنصحني فيها الآن؟",
-                "وش أفضل قرار خلال 7 أيام القادمة؟",
-                "كيف أرفع نسبة السيولة؟",
-                "وش أكثر بند سبب ضغط على السيولة؟"
-              ].map((suggestion, index) => (
+              {(isArabic ? [
+                "ما هي أول خطوة تنصحني بها الآن؟",
+                "ما هو أفضل قرار خلال الأيام السبعة القادمة؟",
+                "كيف يمكنني رفع نسبة السيولة؟",
+                "ما هو أكثر بند يسبب ضغطاً على السيولة؟"
+              ] : [
+                "What is the first step you recommend right now?",
+                "What is the best decision for the next 7 days?",
+                "How can I increase the liquidity ratio?",
+                "Which item puts the most pressure on liquidity?"
+              ]).map((suggestion, index) => (
                 <button 
                   key={index}
                   onClick={() => handleSend(suggestion)}
