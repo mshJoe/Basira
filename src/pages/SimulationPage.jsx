@@ -1,80 +1,89 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Clock, TrendingUp, ShieldAlert, Activity } from 'lucide-react';
 import { useThemeLang } from '../context/ThemeLangProvider';
 import WhatIfSlider from '../components/WhatIfSlider';
 import CashFlowChart from '../components/CashFlowChart';
 
-/* ═══════════════════════════════════════════════════════
-   Derive alert state from collection rate
-   ═══════════════════════════════════════════════════════ */
-function deriveAlertFromRate(rate) {
-  if (rate >= 65) {
-    const days = Math.round(30 + (rate - 65) * 0.75);
-    return { level: 'green', days };
-  }
-  if (rate >= 40) {
-    const days = Math.round(10 + (rate - 40) * 0.8);
-    return { level: 'yellow', days };
-  }
-  const days = Math.max(1, Math.round(rate * 0.25));
-  return { level: 'red', days };
-}
+const API_URL = 'http://127.0.0.1:8000';
 
-/**
- * SimulationPage — Interactive liquidity simulation with slider,
- * instant feedback cards, chart, and alert badge.
- */
 export default function SimulationPage() {
   const { lang } = useThemeLang();
   const isArabic = lang === 'ar';
 
   const [collectionRate, setCollectionRate] = useState(50);
-  const alert = useMemo(() => deriveAlertFromRate(collectionRate), [collectionRate]);
+  const [forecastData, setForecastData] = useState([]);
+  const [alertColor, setAlertColor] = useState('green');
+  const [riskProb, setRiskProb] = useState(0);
 
-  /* ─── Derived metrics ─── */
-  const runway = alert.days;
-  const cashDelta = useMemo(() => {
-    const base = (collectionRate - 50) * 3200;
-    return Math.round(base);
-  }, [collectionRate]);
+  // نقرأ البيانات الأصلية من localStorage
+  const [originalForecast] = useState(() => {
+    const saved = localStorage.getItem('basira_analysis');
+    return saved ? JSON.parse(saved).forecast_data : [];
+  });
 
-  const riskLevel = useMemo(() => {
-    if (alert.level === 'green') return { ar: 'منخفض', en: 'Low', color: '#10b981' };
-    if (alert.level === 'yellow') return { ar: 'متوسط', en: 'Medium', color: '#f59e0b' };
-    return { ar: 'مرتفع', en: 'High', color: '#ef4444' };
-  }, [alert.level]);
+  const [historicalData] = useState(() => {
+    const saved = localStorage.getItem('basira_analysis');
+    return saved ? JSON.parse(saved).historical_data : [];
+  });
 
-  const runwayColor =
-    alert.level === 'green' ? '#10b981' : alert.level === 'yellow' ? '#f59e0b' : '#ef4444';
+  // كل ما تغير السلايدر نستدعي API whatif
+  useEffect(() => {
+    if (originalForecast.length === 0) return;
 
-  const statusPillText = useMemo(() => {
-    if (alert.level === 'green') return { ar: 'آمن', en: 'Safe' };
-    if (alert.level === 'yellow') return { ar: 'تحذير', en: 'Warning' };
-    return { ar: 'حرج', en: 'Critical' };
-  }, [alert.level]);
+    const callWhatIf = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/whatif`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            collection_rate: collectionRate,
+            forecast_data: originalForecast,
+          }),
+        });
+        const data = await response.json();
+        setForecastData(data.adjusted_forecast);
+        setAlertColor(data.color);
+        setRiskProb(data.risk_probability);
+      } catch (e) {
+        // لو فشل الاتصال نستخدم البيانات الأصلية
+        setForecastData(originalForecast);
+      }
+    };
+
+    callWhatIf();
+  }, [collectionRate, originalForecast]);
+
+  const runwayColor = alertColor === 'green' ? '#10b981'
+    : alertColor === 'yellow' ? '#f59e0b' : '#ef4444';
+
+  const riskLevel = {
+    ar: alertColor === 'green' ? 'منخفض' : alertColor === 'yellow' ? 'متوسط' : 'مرتفع',
+    en: alertColor === 'green' ? 'Low' : alertColor === 'yellow' ? 'Medium' : 'High',
+    color: runwayColor,
+  };
+
+  const statusPillText = {
+    ar: alertColor === 'green' ? 'آمن' : alertColor === 'yellow' ? 'تحذير' : 'حرج',
+    en: alertColor === 'green' ? 'Safe' : alertColor === 'yellow' ? 'Warning' : 'Critical',
+  };
+
+  const cashDelta = useMemo(() => Math.round((collectionRate - 50) * 3200), [collectionRate]);
+
+  const runway = useMemo(() => {
+    if (alertColor === 'green') return Math.round(30 + (collectionRate - 65) * 0.75);
+    if (alertColor === 'yellow') return Math.round(10 + (collectionRate - 40) * 0.8);
+    return Math.max(1, Math.round(collectionRate * 0.25));
+  }, [alertColor, collectionRate]);
 
   return (
     <div className="fade-in">
-      {/* Slider */}
       <WhatIfSlider value={collectionRate} onChange={setCollectionRate} />
 
-      {/* Instant Feedback Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3 mb-6">
         {/* Runway */}
         <div className="sim-feedback-card !p-3">
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: `${runwayColor}1a`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: runwayColor,
-              }}
-            >
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${runwayColor}1a`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: runwayColor }}>
               <Clock size={16} strokeWidth={1.8} />
             </div>
           </div>
@@ -85,64 +94,33 @@ export default function SimulationPage() {
             {runway} {isArabic ? 'يوم' : 'days'}
           </p>
           <p className="sim-feedback-card__detail !text-[0.65rem] !mt-1">
-            {isArabic
-              ? 'المدة المتوقعة قبل نفاد السيولة'
-              : 'Estimated time before liquidity runs out'}
+            {isArabic ? 'المدة المتوقعة قبل نفاد السيولة' : 'Estimated time before liquidity runs out'}
           </p>
         </div>
 
         {/* Cash Delta */}
         <div className="sim-feedback-card !p-3">
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: cashDelta >= 0 ? '#10b98118' : '#ef444418',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: cashDelta >= 0 ? '#10b981' : '#ef4444',
-              }}
-            >
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: cashDelta >= 0 ? '#10b98118' : '#ef444418', display: 'flex', alignItems: 'center', justifyContent: 'center', color: cashDelta >= 0 ? '#10b981' : '#ef4444' }}>
               <TrendingUp size={16} strokeWidth={1.8} />
             </div>
           </div>
           <p className="sim-feedback-card__label !text-[0.7rem] !mb-1">
             {isArabic ? 'تأثير التدفق النقدي' : 'Cash Position Impact'}
           </p>
-          <p
-            className="sim-feedback-card__value !text-lg"
-            style={{ color: cashDelta >= 0 ? '#10b981' : '#ef4444' }}
-          >
+          <p className="sim-feedback-card__value !text-lg" style={{ color: cashDelta >= 0 ? '#10b981' : '#ef4444' }}>
             {cashDelta >= 0 ? '+' : ''}
-            {isArabic
-              ? `${cashDelta.toLocaleString('ar-SA').replace(/٬/g, ',')} ﷼`
-              : `${cashDelta.toLocaleString()} SAR`}
+            {isArabic ? `${cashDelta.toLocaleString('ar-SA')} ﷼` : `${cashDelta.toLocaleString()} SAR`}
           </p>
           <p className="sim-feedback-card__detail !text-[0.65rem] !mt-1">
-            {isArabic
-              ? 'الفارق المتوقع في الرصيد التشغيلي'
-              : 'Projected change in operational balance'}
+            {isArabic ? 'الفارق المتوقع في الرصيد التشغيلي' : 'Projected change in operational balance'}
           </p>
         </div>
 
         {/* Risk Level */}
         <div className="sim-feedback-card !p-3">
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: `${riskLevel.color}18`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: riskLevel.color,
-              }}
-            >
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${riskLevel.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: riskLevel.color }}>
               <ShieldAlert size={16} strokeWidth={1.8} />
             </div>
           </div>
@@ -153,26 +131,14 @@ export default function SimulationPage() {
             {isArabic ? riskLevel.ar : riskLevel.en}
           </p>
           <p className="sim-feedback-card__detail !text-[0.65rem] !mt-1">
-            {isArabic
-              ? 'تقييم مخاطر السيولة الحالية'
-              : 'Current liquidity risk assessment'}
+            {isArabic ? `احتمالية الخطر: ${riskProb}%` : `Risk probability: ${riskProb}%`}
           </p>
         </div>
-        {/* Status Description (4th Card) */}
+
+        {/* Status */}
         <div className="sim-feedback-card !p-3">
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                background: `${riskLevel.color}18`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: riskLevel.color,
-              }}
-            >
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${riskLevel.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: riskLevel.color }}>
               <Activity size={16} strokeWidth={1.8} />
             </div>
           </div>
@@ -180,32 +146,30 @@ export default function SimulationPage() {
             {isArabic ? 'حالة السيولة' : 'Liquidity Status'}
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', margin: '0.2rem 0' }}>
-            <span
-              className="status-pill"
-              style={{
-                background: `${riskLevel.color}18`,
-                color: riskLevel.color,
-                padding: '0.15rem 0.5rem',
-                fontSize: '0.7rem'
-              }}
-            >
+            <span className="status-pill" style={{ background: `${riskLevel.color}18`, color: riskLevel.color, padding: '0.15rem 0.5rem', fontSize: '0.7rem' }}>
               <span className="status-pill__dot" style={{ background: riskLevel.color, width: '5px', height: '5px' }} />
               {isArabic ? statusPillText.ar : statusPillText.en}
             </span>
           </div>
           <p className="sim-feedback-card__detail !text-[0.65rem] !mt-1" style={{ fontWeight: 500, color: 'var(--color-basira-text)', lineHeight: '1.4' }}>
-            {isArabic 
-              ? alert.level === 'green' ? 'السيولة في مستوى مستقر وآمن' : alert.level === 'yellow' ? 'انخفاض ملحوظ في مستوى السيولة' : 'مستوى حرج — تدخل فوري مطلوب'
-              : alert.level === 'green' ? 'Liquidity is at a stable, safe level' : alert.level === 'yellow' ? 'Noticeable decline in liquidity level' : 'Critical level — immediate action required'}
+            {isArabic
+              ? alertColor === 'green' ? 'السيولة في مستوى مستقر وآمن'
+                : alertColor === 'yellow' ? 'انخفاض ملحوظ في مستوى السيولة'
+                : 'مستوى حرج — تدخل فوري مطلوب'
+              : alertColor === 'green' ? 'Liquidity is at a stable, safe level'
+                : alertColor === 'yellow' ? 'Noticeable decline in liquidity level'
+                : 'Critical level — immediate action required'}
           </p>
         </div>
       </div>
 
-      {/* Spacer */}
       <div className="h-8 w-full shrink-0"></div>
 
-      {/* Predictive Chart */}
-      <CashFlowChart collectionRate={collectionRate} />
+      <CashFlowChart
+        collectionRate={collectionRate}
+        historicalData={historicalData}
+        forecastData={forecastData.length > 0 ? forecastData : originalForecast}
+      />
     </div>
   );
 }

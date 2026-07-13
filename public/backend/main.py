@@ -13,9 +13,10 @@ app = FastAPI(title="Basira API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 @app.get("/health")
@@ -28,12 +29,11 @@ async def analyze(file: UploadFile = File(...)):
         contents = await file.read()
         df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
 
+        # تعرف تلقائي على الأعمدة
         df.columns = df.columns.str.strip().str.lower()
 
         date_col = next((c for c in df.columns if any(x in c for x in ['date','تاريخ','day','time','month'])), None)
-
         sales_col = next((c for c in df.columns if any(x in c for x in ['sale','revenue','مبيعات','income','دخل','وارد'])), None)
-
         expense_col = next((c for c in df.columns if any(x in c for x in ['expense','cost','مصروف','تكلفة','صادر','spend'])), None)
 
         if not date_col:
@@ -49,11 +49,28 @@ async def analyze(file: UploadFile = File(...)):
 
         if 'sales' in df.columns and 'expenses' not in df.columns:
             df['expenses'] = 0
-
         if 'expenses' in df.columns and 'sales' not in df.columns:
             df['sales'] = 0
 
+        # تنظيف وتحضير البيانات
         df = load_and_prepare_data(df)
+
+        # تدريب النموذج والتنبؤ
+        forecast_df, model = train_and_forecast(df)
+
+        # حساب الإنذار
+        alert = calculate_alert(forecast_df, df)
+
+        # توليد التوصية
+        recommendation = await generate_recommendation(alert, {})
+
+        # تحضير البيانات التاريخية
+        historical = df[['date', 'cashflow']].copy()
+        historical['date'] = historical['date'].dt.strftime('%Y-%m-%d')
+
+        # تحضير التنبؤات
+        forecast_output = forecast_df.copy()
+        forecast_output['ds'] = forecast_output['ds'].dt.strftime('%Y-%m-%d')
 
         return {
             "success": True,
