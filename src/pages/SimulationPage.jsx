@@ -4,8 +4,7 @@ import { useThemeLang } from '../context/ThemeLangProvider';
 import WhatIfSlider from '../components/WhatIfSlider';
 import CashFlowChart from '../components/CashFlowChart';
 
-const API_URL = 'http://127.0.0.1:8000';
-
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 export default function SimulationPage() {
   const { lang } = useThemeLang();
   const isArabic = lang === 'ar';
