@@ -4,7 +4,7 @@ import { useThemeLang } from '../context/ThemeLangProvider';
 import WhatIfSlider from '../components/WhatIfSlider';
 import CashFlowChart from '../components/CashFlowChart';
 
-const API_URL = 'https://9208-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function SimulationPage() {
   const { lang } = useThemeLang();
@@ -147,7 +147,7 @@ export default function SimulationPage() {
           </p>
           <p className="sim-feedback-card__value !text-lg" style={{ color: cashDeltaColor }}>
             {cashDelta >= 0 ? '+' : ''}
-            {isArabic ? `${cashDelta.toLocaleString('ar-SA')} ﷼` : `${cashDelta.toLocaleString()} SAR`}
+            {isArabic ? `${cashDelta.toLocaleString('en-US')} ﷼` : `${cashDelta.toLocaleString('en-US')} SAR`}
           </p>
           <p className="sim-feedback-card__detail !text-[0.65rem] !mt-1">
             {isArabic ? 'الفارق المتوقع في الرصيد التشغيلي' : 'Projected change in operational balance'}

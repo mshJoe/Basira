@@ -24,4 +24,4 @@ dist-ssr
 *.sw?
 public/backend/.env
 backend/.env
-.env
+.env__pycache__/
