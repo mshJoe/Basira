@@ -42,7 +42,7 @@ export function ThemeLangProvider({ children }) {
       try {
         const data = JSON.parse(savedAnalysis);
         if (data.lang !== lang) {
-          fetch('https://9208-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/refresh_analysis', {
+          fetch('https://cbcd-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/refresh_analysis', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

@@ -88,13 +88,47 @@ export default function DashboardPage() {
     });
   }, [analysisData]);
 
-  const alertColor = alert.color === 'green' ? '#10b981'
-    : alert.color === 'yellow' ? '#f59e0b' : '#ef4444';
+  const days = alert.days_to_risk || 30;
+
+  const getLevelFromDays = (days) => {
+    if (days > 30) return 'green';
+    if (days >= 15) return 'yellow';
+    return 'red';
+  };
+
+  const computedLevel = getLevelFromDays(days);
+
+  const alertColor = computedLevel === 'green' ? '#10b981'
+    : computedLevel === 'yellow' ? '#f59e0b'
+    : '#ef4444';
 
   const liquidityStatus = {
-    ar: alert.color === 'green' ? 'آمنة' : alert.color === 'yellow' ? 'متوسطة' : 'حرجة',
-    en: alert.color === 'green' ? 'Safe' : alert.color === 'yellow' ? 'Moderate' : 'Critical',
+    ar: computedLevel === 'green' ? 'آمنة'
+      : computedLevel === 'yellow' ? 'متوسطة'
+      : 'حرجة',
+    en: computedLevel === 'green' ? 'Safe'
+      : computedLevel === 'yellow' ? 'Moderate'
+      : 'Critical',
   };
+
+  const statusNote = {
+    ar: computedLevel === 'green'
+      ? 'السيولة في مستوى مستقر وآمن'
+      : computedLevel === 'yellow'
+        ? 'انخفاض ملحوظ في مستوى السيولة'
+        : 'مستوى حرج — تدخل فوري مطلوب',
+    en: computedLevel === 'green'
+      ? 'Liquidity is at a stable, safe level'
+      : computedLevel === 'yellow'
+        ? 'Noticeable decline in liquidity level'
+        : 'Critical level — immediate action required',
+  };
+
+  const bannerColors = computedLevel === 'green'
+    ? 'bg-green-50 border-green-300 text-green-700 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/50'
+    : computedLevel === 'yellow'
+      ? 'bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50'
+      : 'bg-red-50 border-red-300 text-red-700 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800/50';
 
   const avgForecast = forecastData.length > 0
     ? Math.round(forecastData.reduce((s, d) => s + d.predicted, 0) / forecastData.length)
@@ -108,7 +142,19 @@ export default function DashboardPage() {
 
   return (
     <div className="fade-in">
-      <div className="kpi-grid">
+      {/* Liquidity Alert Banner */}
+      {alert && alert.days_to_risk && (
+        <div className={`p-8 mb-12 rounded-xl flex items-center gap-4 border ${bannerColors}`}>
+          <ShieldAlert size={28} className="flex-shrink-0" />
+          <p className="font-semibold m-0 text-sm md:text-base leading-relaxed">
+            {isArabic 
+              ? `سيولتك تكفي ${alert.days_to_risk} يوماً فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي`
+              : `Your liquidity is sufficient for only ${alert.days_to_risk} days before entering negative balance if the current situation continues`}
+          </p>
+        </div>
+      )}
+
+      <div className="kpi-grid gap-6 mb-12">
         {/* Card 1: مؤشر الإنذار */}
         <div className="metric-card" style={{
           '--metric-accent': alertColor,
@@ -151,13 +197,7 @@ export default function DashboardPage() {
                 {isArabic ? liquidityStatus.ar : liquidityStatus.en}
               </span>
               <p className="metric-card__subtitle" style={{ fontSize: '0.85rem', lineHeight: '1.4', margin: 0 }}>
-                {isArabic
-                  ? alert.color === 'green' ? 'السيولة في مستوى مستقر وآمن'
-                    : alert.color === 'yellow' ? 'انخفاض ملحوظ في مستوى السيولة'
-                    : 'مستوى حرج — تدخل فوري مطلوب'
-                  : alert.color === 'green' ? 'Liquidity is at a stable, safe level'
-                    : alert.color === 'yellow' ? 'Noticeable decline in liquidity level'
-                    : 'Critical level — immediate action required'}
+                {isArabic ? statusNote.ar : statusNote.en}
               </p>
             </div>
           </div>
