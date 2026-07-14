@@ -27,7 +27,22 @@ const TRANSLATIONS = {
     notifHeader: "التنبيهات",
     notifAlertTitle: "تنبيه سيولة حرج",
     notifAlertBodyPre: "سيولتك تكفي ",
-    notifAlertBodyPost: " أيام فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي."
+    notifAlertBodyPost: " أيام فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي.",
+    breakdownTitle: "تفاصيل وتحليل التوزيع المالي",
+    breakdownSubtitle: "ملخص المؤشرات المالية الأساسية حسب التصنيف",
+    colLabel: "البند / التصنيف",
+    colValue: "القيمة الحالية",
+    colChange: "التغير",
+    colStatus: "الحالة",
+    statusHealthy: "مستقر",
+    statusWarning: "تحذير",
+    statusCritical: "حرج",
+    rowRevenue: "متوسط الإيرادات اليومية",
+    rowExpenses: "متوسط المصروفات اليومية",
+    rowNetCash: "صافي التدفق النقدي",
+    rowRiskProb: "احتمالية المخاطر",
+    rowRunway: "فترة الأمان المتبقية",
+    rowWorstDay: "أسوأ يوم متوقع"
   },
   en: {
     noDataTitle: "No data yet",
@@ -50,7 +65,22 @@ const TRANSLATIONS = {
     notifHeader: "Notifications",
     notifAlertTitle: "Critical Liquidity Alert",
     notifAlertBodyPre: "Your liquidity is only sufficient for ",
-    notifAlertBodyPost: " days before entering negative balance if the current situation continues."
+    notifAlertBodyPost: " days before entering negative balance if the current situation continues.",
+    breakdownTitle: "Financial Distribution Breakdown",
+    breakdownSubtitle: "Summary of core financial indicators by category",
+    colLabel: "Item / Category",
+    colValue: "Current Value",
+    colChange: "Change",
+    colStatus: "Status",
+    statusHealthy: "Healthy",
+    statusWarning: "Warning",
+    statusCritical: "Critical",
+    rowRevenue: "Average Daily Revenue",
+    rowExpenses: "Average Daily Expenses",
+    rowNetCash: "Net Cash Flow",
+    rowRiskProb: "Risk Probability",
+    rowRunway: "Remaining Safety Runway",
+    rowWorstDay: "Worst Projected Day"
   }
 };
 
@@ -298,16 +328,208 @@ export default function AnalyticsPage() {
         
       </div>
 
-      {/* Recommendations */}
+      {/* Financial Distribution Breakdown */}
+      {(() => {
+        // Compute breakdown rows from real data
+        const hist = analysisData?.historical_data || [];
+        const avgRevenue = hist.length > 0 ? Math.round(hist.reduce((s, d) => s + (d.sales || 0), 0) / hist.length) : 0;
+        const avgExpenses = hist.length > 0 ? Math.round(hist.reduce((s, d) => s + (d.expenses || 0), 0) / hist.length) : 0;
+        const netCash = avgRevenue - avgExpenses;
+        const riskProb = alert?.risk_probability || 0;
+        const worstCash = alert?.worst_expected_cashflow || 0;
+
+        const getStatus = (type) => {
+          if (type === 'positive') return { label: t.statusHealthy, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/30', dot: 'bg-emerald-500' };
+          if (type === 'warning') return { label: t.statusWarning, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/30', dot: 'bg-amber-500' };
+          return { label: t.statusCritical, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950/30', dot: 'bg-red-500' };
+        };
+
+        const rows = analysisData?.breakdown_items || [
+          { label: t.rowRevenue, value: avgRevenue, suffix: t.currency, status: avgRevenue > 0 ? 'positive' : 'warning', change: null },
+          { label: t.rowExpenses, value: avgExpenses, suffix: t.currency, status: avgExpenses > avgRevenue ? 'critical' : avgExpenses > avgRevenue * 0.8 ? 'warning' : 'positive', change: null },
+          { label: t.rowNetCash, value: netCash, suffix: t.currency, status: netCash > 0 ? 'positive' : netCash > -1000 ? 'warning' : 'critical', change: changePercentage ? `${changePercentage}%` : null },
+          { label: t.rowRiskProb, value: riskProb, suffix: '%', status: riskProb > 70 ? 'critical' : riskProb > 40 ? 'warning' : 'positive', change: null },
+          { label: t.rowRunway, value: daysToRisk, suffix: ` ${t.days}`, status: daysToRisk < 15 ? 'critical' : daysToRisk < 30 ? 'warning' : 'positive', change: null },
+          { label: t.rowWorstDay, value: worstCash, suffix: t.currency, status: worstCash < 0 ? 'critical' : worstCash < 2000 ? 'warning' : 'positive', change: null },
+        ];
+
+        return (
+          <div style={{
+            background: 'var(--color-surface)',
+            borderRadius: '28px',
+            padding: '22px 24px',
+            boxShadow: 'var(--shadow-sm)',
+            marginTop: '32px',
+            marginBottom: '32px',
+            transition: 'box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+            onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
+            onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
+          >
+            <div style={{ marginBottom: '20px' }}>
+              <h3 style={{
+                fontSize: '17px',
+                fontWeight: 700,
+                color: 'var(--color-ink)',
+                margin: 0,
+                lineHeight: 1.3,
+              }}>{t.breakdownTitle}</h3>
+              <p style={{
+                fontSize: '12.5px',
+                color: 'var(--color-muted)',
+                margin: '4px 0 0 0',
+              }}>{t.breakdownSubtitle}</p>
+            </div>
+
+            <div className="hidden md:grid grid-cols-12 gap-4 px-4 py-3 rounded-xl mb-2" style={{
+              background: 'var(--color-surface-soft)',
+            }}>
+              <span className="col-span-4" style={{
+                fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>{t.colLabel}</span>
+              <span className="col-span-3 text-center" style={{
+                fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>{t.colValue}</span>
+              <span className="col-span-2 text-center" style={{
+                fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>{t.colChange}</span>
+              <span className="col-span-3 text-center" style={{
+                fontSize: '11px', fontWeight: 600, color: 'var(--color-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>{t.colStatus}</span>
+            </div>
+
+            <div>
+              {rows.map((row, idx) => {
+                const st = getStatus(row.status);
+                const statusColor = row.status === 'positive' ? 'var(--color-green)'
+                  : row.status === 'warning' ? 'var(--color-amber)'
+                  : 'var(--color-red)';
+                const statusBg = row.status === 'positive' ? 'var(--color-green-soft)'
+                  : row.status === 'warning' ? 'var(--color-amber-soft)'
+                  : 'var(--color-red-soft)';
+                return (
+                  <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 md:gap-4 px-4 py-4 items-center rounded-lg transition-colors"
+                    style={{
+                      borderBottom: idx < rows.length - 1 ? '1px solid var(--color-border)' : 'none',
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-surface-soft)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <div className="col-span-1 md:col-span-4 flex items-center gap-3">
+                      <span style={{
+                        width: '8px', height: '8px', borderRadius: '50%',
+                        background: statusColor,
+                        flexShrink: 0,
+                      }} />
+                      <span style={{
+                        fontSize: '13px', fontWeight: 500, color: 'var(--color-ink)',
+                      }}>{row.label}</span>
+                    </div>
+                    <div className="col-span-1 md:col-span-3 text-center">
+                      <span style={{
+                        fontSize: '13px', fontWeight: 700, color: 'var(--color-ink)',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}>
+                        {Number(row.value || 0).toLocaleString('en-US')}
+                      </span>
+                      <span style={{
+                        fontSize: '11px', color: 'var(--color-muted)', marginLeft: '4px',
+                      }}>{row.suffix}</span>
+                    </div>
+                    <div className="col-span-1 md:col-span-2 text-center">
+                      {row.change ? (
+                        <span style={{
+                          fontSize: '11px', fontWeight: 600,
+                          padding: '2px 8px', borderRadius: '100px',
+                          color: parseFloat(row.change) >= 0 ? 'var(--color-amber)' : 'var(--color-green)',
+                          background: parseFloat(row.change) >= 0 ? 'var(--color-amber-soft)' : 'var(--color-green-soft)',
+                        }}>
+                          {parseFloat(row.change) >= 0 ? '↑' : '↓'} {row.change}
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: '11px', color: 'var(--color-muted)', opacity: 0.5,
+                        }}>—</span>
+                      )}
+                    </div>
+                    <div className="col-span-1 md:col-span-3 flex justify-center">
+                      <span style={{
+                        fontSize: '11px', fontWeight: 600,
+                        padding: '3px 10px', borderRadius: '100px',
+                        color: statusColor,
+                        background: statusBg,
+                      }}>
+                        {st.label}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
+
+
+      {/* Warning Reason */}
       {recommendation?.analytics_insight && (
-        <div className="my-10 block clear-both" style={{ marginTop: '40px', marginBottom: '40px', display: 'block', width: '100%' }}>
-          <div className="p-8 rounded-2xl flex items-start gap-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800" style={{ padding: '24px', borderRadius: '16px' }}>
-            <div className="text-3xl flex-shrink-0 leading-none mt-0.5">💡</div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-lg m-0 font-bold text-gray-800 dark:text-gray-100 leading-snug">
+        <div style={{
+          background: 'var(--color-surface)',
+          borderRadius: '28px',
+          padding: '22px 24px',
+          boxShadow: 'var(--shadow-sm)',
+          marginTop: '32px',
+          marginBottom: '32px',
+          position: 'relative',
+          overflow: 'hidden',
+          transition: 'box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+          onMouseEnter={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
+          onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'var(--shadow-sm)'}
+        >
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: alertColor,
+            opacity: 0.8,
+          }} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+            <div style={{
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              background: `${alertColor}1a`,
+              color: alertColor,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <ShieldAlert size={20} strokeWidth={1.8} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h3 style={{
+                fontSize: '15px',
+                fontWeight: 600,
+                color: 'var(--color-ink)',
+                margin: 0,
+                lineHeight: 1.4,
+              }}>
                 {recommendation.analytics_insight.title}
               </h3>
-              <p className="m-0 leading-relaxed text-gray-500 dark:text-gray-400 font-medium mt-1.5 text-sm">
+              <p style={{
+                fontSize: '12.5px',
+                color: 'var(--color-ink-soft)',
+                margin: '6px 0 0 0',
+                lineHeight: 1.6,
+              }}>
                 {recommendation.analytics_insight.description}
               </p>
             </div>
