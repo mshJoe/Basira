@@ -3,7 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useThemeLang } from '../context/ThemeLangProvider';
 
-const API_URL = 'http://127.0.0.1:8000';
+const API_URL = 'https://9208-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app';
 
 const TEXT = {
   ar: {
