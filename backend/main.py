@@ -1,13 +1,19 @@
 from dotenv import load_dotenv
 load_dotenv()
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from typing import Optional
 import pandas as pd
 import io
+import os
+import traceback
+from google import genai
 from app.model import load_and_prepare_data, train_and_forecast
 from app.alert import calculate_alert
 from app.recommender import generate_recommendation
+
+print("GEMINI API KEY STATUS:", bool(os.getenv("GEMINI_API_KEY")))
 
 app = FastAPI(title="Basira API", version="1.0.0")
 
@@ -24,10 +30,23 @@ def health():
     return {"status": "ok", "message": "Basira API is running"}
 
 @app.post("/api/analyze")
-async def analyze(file: UploadFile = File(...)):
+async def analyze(file: UploadFile = File(...), lang: Optional[str] = Form("ar")):
+    print(f"--- INCOMING PAYLOAD (/api/analyze) --- file={file.filename}, lang={lang}")
     try:
         contents = await file.read()
-        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+        filename = file.filename.lower()
+        
+        try:
+            if filename.endswith('.csv'):
+                df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+            elif filename.endswith('.xlsx') or filename.endswith('.xls'):
+                df = pd.read_excel(io.BytesIO(contents))
+            else:
+                raise ValueError("Unsupported file format. Please upload a CSV or Excel file.")
+        except Exception as e:
+            print("--- /api/analyze PARSING ERROR ---")
+            traceback.print_exc()
+            raise HTTPException(status_code=400, detail=f"Error parsing file: {str(e)}")
 
         # تعرف تلقائي على الأعمدة
         df.columns = df.columns.str.strip().str.lower()
@@ -59,10 +78,10 @@ async def analyze(file: UploadFile = File(...)):
         forecast_df, model = train_and_forecast(df)
 
         # حساب الإنذار
-        alert = calculate_alert(forecast_df, df)
+        alert = calculate_alert(forecast_df, df, lang)
 
         # توليد التوصية
-        recommendation = await generate_recommendation(alert, {})
+        recommendation = await generate_recommendation(alert, {}, lang)
 
         # تحضير البيانات التاريخية
         historical = df[['date', 'cashflow']].copy()
@@ -74,6 +93,7 @@ async def analyze(file: UploadFile = File(...)):
 
         return {
             "success": True,
+            "lang": lang,
             "alert": alert,
             "recommendation": recommendation,
             "historical_data": historical.to_dict('records'),
@@ -86,12 +106,17 @@ async def analyze(file: UploadFile = File(...)):
         }
 
     except Exception as e:
+        print("--- /api/analyze ERROR ---")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+
 
 
 class WhatIfRequest(BaseModel):
     collection_rate: float
     forecast_data: list
+    lang: Optional[str] = "ar"
 
 @app.post("/api/whatif")
 async def whatif(request: WhatIfRequest):
@@ -120,3 +145,68 @@ async def whatif(request: WhatIfRequest):
         "risk_probability": round(risk_prob, 1),
         "adjusted_forecast": adjusted_forecast
     }
+
+
+class ChatRequest(BaseModel):
+    prompt: str
+    lang: Optional[str] = "ar"
+
+@app.post("/api/chat")
+async def chat_with_basira(request: ChatRequest):
+    print("--- INCOMING PAYLOAD (/api/chat) ---", request.dict())
+    try:
+        # Initialize the new client
+        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+        
+        lang = request.lang or "ar"
+        system_context = f"أنت مساعد مالي ذكي اسمك 'بصيرة'. أجب على أسئلة المستخدم باختصار واحترافية. \nIMPORTANT: Reply to the user strictly in {'English' if lang == 'en' else 'Arabic'}."
+        full_prompt = f"{system_context}\n\nسؤال المستخدم: {request.prompt}"
+        
+        # Use the new generate_content syntax
+        response = client.models.generate_content(
+            model='gemini-2.5-flash',
+            contents=full_prompt,
+        )
+        
+        print("--- RAW GEMINI RESPONSE (/api/chat) ---")
+        print(response.text)
+        
+        return {"reply": response.text}
+        
+    except Exception as e:
+        print("--- /api/chat ERROR ---")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+class RefreshAnalysisRequest(BaseModel):
+    historical_data: list
+    forecast_data: list
+    lang: Optional[str] = "ar"
+
+@app.post("/api/refresh_analysis")
+async def refresh_analysis(request: RefreshAnalysisRequest):
+    try:
+        historical_df = pd.DataFrame(request.historical_data)
+        forecast_df = pd.DataFrame(request.forecast_data)
+
+        # Map back columns expected by calculate_alert
+        forecast_df = forecast_df.rename(columns={
+            'date': 'ds',
+            'predicted': 'yhat',
+            'lower': 'yhat_lower',
+            'upper': 'yhat_upper'
+        })
+        
+        alert = calculate_alert(forecast_df, historical_df, request.lang)
+        recommendation = await generate_recommendation(alert, {}, request.lang)
+
+        return {
+            "success": True,
+            "lang": request.lang,
+            "alert": alert,
+            "recommendation": recommendation
+        }
+    except Exception as e:
+        print("--- /api/refresh_analysis ERROR ---")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))

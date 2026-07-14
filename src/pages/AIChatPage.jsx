@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Send, Sparkles, Plus, ArrowLeft } from 'lucide-react';
 import { useThemeLang } from '../context/ThemeLangProvider';
 
@@ -19,9 +19,16 @@ export default function AIChatPage() {
   const isArabic = lang === 'ar';
   const isDark = theme === 'dark';
 
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    const saved = sessionStorage.getItem('basira_ai_chat_history');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    sessionStorage.setItem('basira_ai_chat_history', JSON.stringify(messages));
+  }, [messages]);
 
   const getAnalysisContext = () => {
     const saved = localStorage.getItem('basira_analysis');
@@ -62,7 +69,7 @@ export default function AIChatPage() {
           ? Math.round(forecast.reduce((s, d) => s + d.predicted, 0) / forecast.length)
           : 0;
 
-        context = `
+        context = isArabic ? `
 أنت تتحدث مع صاحب منشأة — هذه بياناته الحقيقية الكاملة:
 
 📊 البيانات التاريخية (${historical.length} يوم):
@@ -79,31 +86,56 @@ export default function AIChatPage() {
 - احتمالية الخطر: ${alert.risk_probability}%
 - الأسباب: ${alert.reasons.join('، ')}
 
-💡 التوصية الحالية: ${analysisData.recommendation}
+💡 التوصية الحالية: ${analysisData.recommendation?.analytics_insight?.description || ''}
+        ` : `
+You are talking to a business owner — here is their real data:
+
+📊 Historical Data (${historical.length} days):
+- Avg Daily Cash Flow: ${avgCashflow} SAR
+- Highest Cash Flow: ${maxCashflow} SAR
+- Lowest Cash Flow: ${minCashflow} SAR
+
+🔮 Forecasts (Next 30 days):
+- Expected Avg Flow: ${avgForecast} SAR
+- Expected Worst Day: ${alert.worst_expected_cashflow} SAR in ${alert.days_to_risk} days
+
+🚨 Alert Status:
+- Color: ${alert.color === 'green' ? 'Green — Safe' : alert.color === 'yellow' ? 'Yellow — Warning' : 'Red — Danger'}
+- Risk Probability: ${alert.risk_probability}%
+- Reasons: ${alert.reasons.join(', ')}
+
+💡 Current Recommendation: ${analysisData.recommendation?.analytics_insight?.description || ''}
         `;
       }
 
-      const prompt = `أنت مساعد مالي ذكي اسمك بصيرة AI، متخصص في مساعدة أصحاب المنشآت الصغيرة والمتوسطة في السعودية.
+      const prompt = isArabic ? `أنت مساعد مالي ذكي اسمك بصيرة AI، متخصص في مساعدة أصحاب المنشآت الصغيرة والمتوسطة في السعودية.
 
 ${context}
 
 سؤال المستخدم: ${text}
 
-أجب بالعربي بشكل مختصر وعملي ومباشر. استخدم الأرقام المحددة من بيانات المستخدم. لا تزيد عن 5 جمل.`;
+أجب بالعربي بشكل مختصر وعملي ومباشر. استخدم الأرقام المحددة من بيانات المستخدم. لا تزيد عن 5 جمل.` : `You are a smart financial assistant named BasiraAI, specializing in helping SMEs in Saudi Arabia.
+
+${context}
+
+User question: ${text}
+
+Answer in English concisely, practically, and directly. Use specific numbers from the user's data. Do not exceed 5 sentences.`;
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`,
+        `http://127.0.0.1:8000/api/chat`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
+            prompt: prompt,
+            lang: lang
           })
         }
       );
 
       const data = await response.json();
-      const aiText = data?.candidates?.[0]?.content?.parts?.[0]?.text
+      const aiText = data?.reply
         || (isArabic ? 'عذراً، حدث خطأ. حاول مرة ثانية.' : 'Sorry, an error occurred. Please try again.');
 
       setMessages(prev => [...prev, { sender: 'BasiraAI', type: 'ai', text: aiText }]);
@@ -145,18 +177,27 @@ ${context}
   return (
     <div className="fade-in">
       {messages.length > 0 && (
-        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(139, 92, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6' }}>
-            <Sparkles size={20} strokeWidth={1.8} />
+        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(139, 92, 246, 0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8b5cf6' }}>
+              <Sparkles size={20} strokeWidth={1.8} />
+            </div>
+            <div>
+              <h2 className="section-title" style={{ marginBottom: 0 }}>
+                {isArabic ? 'المساعد الذكي بصيرة' : 'BasiraAI Assistant'}
+              </h2>
+              <p style={{ fontSize: '0.78rem', color: 'var(--color-basira-text-muted)' }}>
+                {isArabic ? 'اسأل بصيرة عن أي استفسار مالي' : 'Ask Basira about any financial inquiry'}
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="section-title" style={{ marginBottom: 0 }}>
-              {isArabic ? 'المساعد الذكي بصيرة' : 'BasiraAI Assistant'}
-            </h2>
-            <p style={{ fontSize: '0.78rem', color: 'var(--color-basira-text-muted)' }}>
-              {isArabic ? 'اسأل بصيرة عن أي استفسار مالي' : 'Ask Basira about any financial inquiry'}
-            </p>
-          </div>
+          <button
+            onClick={() => { setMessages([]); sessionStorage.removeItem('basira_ai_chat_history'); }}
+            style={{ fontSize: '0.85rem', padding: '0.4rem 0.8rem', borderRadius: '8px', border: '1px solid var(--color-basira-border)', background: 'transparent', cursor: 'pointer' }}
+            className="text-gray-500 hover:text-red-500 hover:border-red-500 transition-colors"
+          >
+            {isArabic ? 'مسح المحادثة' : 'Clear Chat'}
+          </button>
         </div>
       )}
 

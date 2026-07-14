@@ -34,6 +34,25 @@
   --color-basira-purple: #8b5cf6;
 }
 
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 dark:bg-[#0B0F19] dark:text-white transition-colors duration-300;
+  }
+}
+
+@font-face {
+  font-family: 'SF Pro AR';
+  src: url('/fonts/SF-Pro-AR.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ═══════════════════════════════════════════════════════
+   Basira — Premium FinTech Design System
+   World-class dark-mode dashboard with RTL Arabic support
+   ═══════════════════════════════════════════════════════ */
+
 /* ─── Base Reset & Global Styles ─── */
 *, *::before, *::after {
   box-sizing: border-box;

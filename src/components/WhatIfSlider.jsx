@@ -1,8 +1,5 @@
 import { useThemeLang } from '../context/ThemeLangProvider';
 
-/* ═══════════════════════════════════════════════════════
-   Bilingual strings
-   ═══════════════════════════════════════════════════════ */
 const TEXT = {
   ar: {
     title: 'محاكاة معدل التحصيل',
@@ -20,37 +17,13 @@ const TEXT = {
   },
 };
 
-/* ═══════════════════════════════════════════════════════
-   Static color map — avoids dynamic class interpolation.
-   Each zone maps to a concrete hex that is guaranteed visible
-   in both dark and light modes.
-   ═══════════════════════════════════════════════════════ */
-const ZONE_COLORS = {
-  safe: '#10b981', // emerald-500 — bright green, visible on dark bg
-  warning: '#f59e0b', // amber-500
-  danger: '#ef4444', // red-500
-};
-
-function getZone(value) {
-  if (value >= 65) return 'safe';
-  if (value >= 40) return 'warning';
-  return 'danger';
-}
-
-/**
- * WhatIfSlider — adjusts a collection rate percentage.
- * Drives AlertBadge severity + CashFlowChart forecast reactively.
- *
- * @param {number}   value     — current collection rate (0-100)
- * @param {function} onChange  — callback with new value
- */
-export default function WhatIfSlider({ value = 50, onChange }) {
+export default function WhatIfSlider({ collectionRate = 50, onRateChange, activeColor }) {
   const { lang } = useThemeLang();
   const t = TEXT[lang];
 
-  const zone = getZone(value);
-  const accentColor = ZONE_COLORS[zone];
-  const pct = `${value}%`;
+  // Cross-browser RTL/LTR linear gradient logic
+  const direction = lang === 'ar' ? 'to left' : 'to right';
+  const trackBackground = `linear-gradient(${direction}, ${activeColor} ${collectionRate}%, #374151 ${collectionRate}%)`;
 
   return (
     <div className="whatif-slider">
@@ -61,8 +34,8 @@ export default function WhatIfSlider({ value = 50, onChange }) {
           <p className="whatif-slider__subtitle">{t.subtitle}</p>
         </div>
         {/* Value badge */}
-        <div className="whatif-slider__value-badge" style={{ color: accentColor }}>
-          {value}%
+        <div className="whatif-slider__value-badge" style={{ color: activeColor }}>
+          {collectionRate}%
         </div>
       </div>
 
@@ -76,12 +49,12 @@ export default function WhatIfSlider({ value = 50, onChange }) {
             min={0}
             max={100}
             step={1}
-            value={value}
-            onChange={(e) => onChange?.(Number(e.target.value))}
+            value={collectionRate}
+            onChange={(e) => onRateChange?.(Number(e.target.value))}
             className="whatif-slider__input"
             style={{
-              '--slider-pct': pct,
-              '--slider-accent': accentColor,
+              background: trackBackground,
+              '--slider-accent': activeColor,
             }}
             aria-label={t.label}
           />
@@ -91,7 +64,7 @@ export default function WhatIfSlider({ value = 50, onChange }) {
       </div>
 
       {/* Label */}
-      <p className="whatif-slider__label">{t.label}: <strong>{value}%</strong></p>
+      <p className="whatif-slider__label">{t.label}: <strong>{collectionRate}%</strong></p>
     </div>
   );
 }

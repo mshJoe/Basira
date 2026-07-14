@@ -15,10 +15,15 @@ export default function AnalyticsPage() {
 
   // نقرأ البيانات من localStorage لما تفتح الصفحة
   useEffect(() => {
-    const saved = localStorage.getItem('basira_analysis');
-    if (saved) {
-      setAnalysisData(JSON.parse(saved));
-    }
+    const loadAnalysis = () => {
+      const saved = localStorage.getItem('basira_analysis');
+      if (saved) setAnalysisData(JSON.parse(saved));
+    };
+
+    loadAnalysis();
+
+    window.addEventListener('basira_analysis_updated', loadAnalysis);
+    return () => window.removeEventListener('basira_analysis_updated', loadAnalysis);
   }, []);
 
   // لو ما في بيانات — نعرض رسالة
@@ -152,9 +157,11 @@ export default function AnalyticsPage() {
         {/* Card 4: أعلى خطر */}
         <MetricCard
           title={isArabic ? 'أعلى خطر قادم' : 'Highest Upcoming Risk'}
-          value={isArabic 
-            ? (alert.reasons[0] || 'لا يوجد') 
-            : (alert.reasons[0] || 'None')}
+          value={
+            <span className="text-xl leading-snug" style={{ display: 'block', marginTop: '0.25rem' }}>
+              {isArabic ? (alert.reasons[0] || 'لا يوجد') : (alert.reasons[0] || 'None')}
+            </span>
+          }
           subtitle={isArabic
             ? `احتمالية الخطر: ${alert.risk_probability}%`
             : `Risk probability: ${alert.risk_probability}%`}
@@ -164,18 +171,28 @@ export default function AnalyticsPage() {
       </div>
 
       {/* التوصية */}
-      {recommendation && (
+      {recommendation?.analytics_insight && (
         <div style={{
-          margin: '1.5rem 0',
+          marginTop: '1.5rem',
+          marginBottom: '2.5rem',
           padding: '1.5rem',
           borderRadius: '12px',
-          background: `${alertColor}0d`,
-          border: `1px solid ${alertColor}40`
+          background: alertColor === '#10b981'
+            ? 'rgba(16, 185, 129, 0.1)'
+            : alertColor === '#f59e0b'
+            ? 'rgba(245, 158, 11, 0.1)'
+            : 'rgba(239, 68, 68, 0.1)',
+          border: `1px solid ${alertColor}`
         }}>
-          <h3 style={{ marginBottom: '0.5rem', color: alertColor }}>
-            {isArabic ? '💡 توصية بصيرة' : '💡 Basira Recommendation'}
-          </h3>
-          <p style={{ lineHeight: '1.8' }}>{recommendation}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+            <span style={{ fontSize: '1.25rem' }}>💡</span>
+            <h3 style={{ fontSize: '1.1rem', margin: 0, color: alertColor }}>
+              {recommendation.analytics_insight.title}
+            </h3>
+          </div>
+          <p style={{ opacity: 0.9, margin: 0, lineHeight: '1.6' }}>
+            {recommendation.analytics_insight.description}
+          </p>
         </div>
       )}
 

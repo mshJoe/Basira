@@ -8,7 +8,7 @@ import MetricCard from '../components/MetricCard';
 import CashFlowChart from '../components/CashFlowChart';
 import { RecommendationSection } from '../components/RecommendationCard';
 
-const RECOMMENDATIONS = [
+const DEFAULT_RECOMMENDATIONS = [
   {
     icon: TrendingUp,
     titleAr: 'حَصّل مستحقات العميل الرئيسي هذا الأسبوع',
@@ -45,14 +45,48 @@ export default function DashboardPage() {
   const [analysisData, setAnalysisData] = useState(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('basira_analysis');
-    if (saved) setAnalysisData(JSON.parse(saved));
+    const loadAnalysis = () => {
+      const saved = localStorage.getItem('basira_analysis');
+      if (saved) setAnalysisData(JSON.parse(saved));
+    };
+
+    loadAnalysis();
+
+    window.addEventListener('basira_analysis_updated', loadAnalysis);
+    return () => window.removeEventListener('basira_analysis_updated', loadAnalysis);
   }, []);
 
   // لو ما في بيانات — نستخدم القيم الافتراضية
   const alert = analysisData?.alert || { color: 'green', days_to_risk: 30, risk_probability: 0, reasons: [] };
   const forecastData = analysisData?.forecast_data || [];
   const historicalData = analysisData?.historical_data || [];
+
+  const dynamicRecommendations = useMemo(() => {
+    const actions = analysisData?.recommendation?.dashboard_actions;
+    if (!actions || !Array.isArray(actions) || actions.length === 0) {
+      return DEFAULT_RECOMMENDATIONS;
+    }
+
+    const icons = [TrendingUp, ShieldAlert, PiggyBank];
+
+    return actions.map((action, i) => {
+      let accentKey = 'secondary';
+      const tag = action.primary_tag || '';
+      if (tag.includes('عالية') || tag.includes('High')) accentKey = 'accent';
+      else if (tag.includes('مخاطر') || tag.includes('Risk') || tag.includes('تحذير')) accentKey = 'warning';
+      else if (tag.includes('توفير') || tag.includes('Saving') || tag.includes('استثمار')) accentKey = 'success';
+
+      return {
+        icon: icons[i % icons.length],
+        titleAr: action.title,
+        titleEn: action.title,
+        descriptionAr: action.description,
+        descriptionEn: action.description,
+        tags: [tag],
+        accentKey: accentKey,
+      };
+    });
+  }, [analysisData]);
 
   const alertColor = alert.color === 'green' ? '#10b981'
     : alert.color === 'yellow' ? '#f59e0b' : '#ef4444';
@@ -154,9 +188,11 @@ export default function DashboardPage() {
         {/* Card 4: أعلى خطر */}
         <MetricCard
           title={isArabic ? 'أعلى خطر قادم' : 'Highest Upcoming Risk'}
-          value={isArabic
-            ? (alert.reasons?.[0] || 'لا يوجد')
-            : (alert.reasons?.[0] || 'None')}
+          value={
+            <span className="text-xl leading-snug" style={{ display: 'block', marginTop: '0.25rem' }}>
+              {isArabic ? (alert.reasons?.[0] || 'لا يوجد') : (alert.reasons?.[0] || 'None')}
+            </span>
+          }
           subtitle={isArabic
             ? `احتمالية الخطر: ${alert.risk_probability}%`
             : `Risk probability: ${alert.risk_probability}%`}
@@ -167,7 +203,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6 items-stretch">
         <div className="lg:col-span-5 h-full">
-          <RecommendationSection recommendations={RECOMMENDATIONS} />
+          <RecommendationSection recommendations={dynamicRecommendations} />
         </div>
         <div className="lg:col-span-7 h-full">
           <CashFlowChart

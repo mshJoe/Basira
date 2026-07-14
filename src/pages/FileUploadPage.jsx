@@ -18,7 +18,10 @@ export default function FileUploadPage() {
   const { lang } = useThemeLang();
   const isArabic = lang === 'ar';
 
-  const [analysisResult, setAnalysisResult] = useState(null);
+  const [analysisResult, setAnalysisResult] = useState(() => {
+    const saved = localStorage.getItem('basira_analysis');
+    return saved ? JSON.parse(saved) : null;
+  });
 
   const handleAnalysisComplete = (data) => {
     // حفظ النتائج في localStorage عشان باقي الصفحات تقدر تقرأها
@@ -29,39 +32,16 @@ export default function FileUploadPage() {
     console.log('Analysis result:', data);
   };
 
+  const handleReset = () => {
+    setAnalysisResult(null);
+  };
+
   return (
     <div className="fade-in">
       {/* File Upload */}
-      <FileUpload onAnalysisComplete={handleAnalysisComplete} />
+      <FileUpload onAnalysisComplete={handleAnalysisComplete} onReset={handleReset} />
 
-      {/* نتيجة التحليل لو وصلت */}
-      {analysisResult && (
-        <div style={{
-          marginTop: '1.5rem',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          background: analysisResult.alert.color === 'green'
-            ? 'rgba(34,197,94,0.1)'
-            : analysisResult.alert.color === 'yellow'
-            ? 'rgba(234,179,8,0.1)'
-            : 'rgba(239,68,68,0.1)',
-          border: `1px solid ${
-            analysisResult.alert.color === 'green' ? '#22c55e'
-            : analysisResult.alert.color === 'yellow' ? '#eab308'
-            : '#ef4444'
-          }`
-        }}>
-          <h3 style={{ marginBottom: '0.5rem', fontSize: '1.1rem' }}>
-            {analysisResult.alert.message}
-          </h3>
-          <p style={{ opacity: 0.8, marginBottom: '0.5rem' }}>
-            {analysisResult.recommendation}
-          </p>
-          <small style={{ opacity: 0.6 }}>
-            {isArabic ? 'احتمالية الخطر:' : 'Risk probability:'} {analysisResult.alert.risk_probability}%
-          </small>
-        </div>
-      )}
+
 
       {/* Coming Soon Integrations */}
       <div style={{ marginTop: '2rem' }}>

@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { UploadCloud, FileSpreadsheet, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useThemeLang } from '../context/ThemeLangProvider';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+const API_URL = 'http://127.0.0.1:8000';
 
 const TEXT = {
   ar: {
@@ -52,12 +52,17 @@ const ACCEPT = {
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
 };
 
-export default function FileUpload({ onAnalysisComplete }) {
+export default function FileUpload({ onAnalysisComplete, onReset }) {
   const { lang } = useThemeLang();
   const t = TEXT[lang];
 
-  const [status, setStatus] = useState('idle');
-  const [file, setFile] = useState(null);
+  const [status, setStatus] = useState(() => {
+    return localStorage.getItem('basira_analysis') ? 'success' : 'idle';
+  });
+  const [file, setFile] = useState(() => {
+    const saved = localStorage.getItem('basira_file_info');
+    return saved ? JSON.parse(saved) : null;
+  });
   const [errorMsg, setErrorMsg] = useState('');
 
   const onDrop = useCallback(async (acceptedFiles, rejectedFiles) => {
@@ -78,6 +83,7 @@ export default function FileUpload({ onAnalysisComplete }) {
       // إرسال الملف للباكاند
       const formData = new FormData();
       formData.append('file', droppedFile);
+      formData.append('lang', lang);
 
       const response = await fetch(`${API_URL}/api/analyze`, {
         method: 'POST',
@@ -91,6 +97,7 @@ export default function FileUpload({ onAnalysisComplete }) {
       const data = await response.json();
 
       setStatus('success');
+      localStorage.setItem('basira_file_info', JSON.stringify({ name: droppedFile.name, size: droppedFile.size }));
 
       // أرسل النتائج للصفحة الرئيسية
       if (onAnalysisComplete) {
@@ -108,7 +115,10 @@ export default function FileUpload({ onAnalysisComplete }) {
     setStatus('idle');
     setFile(null);
     setErrorMsg('');
-  }, []);
+    localStorage.removeItem('basira_analysis');
+    localStorage.removeItem('basira_file_info');
+    if (onReset) onReset();
+  }, [onReset]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
