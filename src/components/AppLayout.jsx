@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sun, Moon, User, Bell } from 'lucide-react';
 import { useThemeLang } from '../context/ThemeLangProvider';
 import Sidebar, { SidebarMobileToggle } from './Sidebar';
@@ -63,6 +63,24 @@ export default function AppLayout() {
   const [activePage, setActivePage] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifData, setNotifData] = useState(null);
+
+  // Read analysis data for notification sidebar
+  useEffect(() => {
+    const loadNotifData = () => {
+      const saved = localStorage.getItem('basira_analysis');
+      if (saved) setNotifData(JSON.parse(saved));
+    };
+    loadNotifData();
+    window.addEventListener('basira_analysis_updated', loadNotifData);
+    window.addEventListener('refresh_analysis', loadNotifData);
+    return () => {
+      window.removeEventListener('basira_analysis_updated', loadNotifData);
+      window.removeEventListener('refresh_analysis', loadNotifData);
+    };
+  }, []);
+
+  const runwayDays = notifData?.alert?.days_to_risk || notifData?.runway_days || 3;
 
   /* ─── Determine the correct logo ─── */
   const logoSrc = !isArabic
@@ -188,14 +206,19 @@ export default function AppLayout() {
       <div className={`fixed inset-0 backdrop-blur-sm bg-black/30 z-50 transition-opacity duration-300 ${isNotifOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsNotifOpen(false)}>
         <div className={`fixed top-0 right-0 h-full w-[340px] bg-white dark:bg-[#131E2C] shadow-2xl p-6 transition-transform duration-300 z-50 ${isNotifOpen ? 'translate-x-0' : 'translate-x-full'}`} onClick={(e) => e.stopPropagation()}>
           <div className="flex justify-between items-center pb-4 mb-6 border-b border-gray-100 dark:border-slate-800">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">التنبيهات</h3>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">{isArabic ? 'التنبيهات' : 'Notifications'}</h3>
             <button className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-slate-800 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 flex items-center justify-center transition-all cursor-pointer" onClick={() => setIsNotifOpen(false)}>✕</button>
           </div>
           {/* Sidebar Content */}
           <div className="overflow-y-auto flex-1 max-h-[calc(100vh-120px)] pr-1 space-y-4">
             <div className="bg-red-50/40 dark:bg-red-950/10 border border-red-100/60 dark:border-red-900/20 rounded-2xl p-5 relative overflow-hidden shadow-sm before:absolute before:top-0 before:right-0 before:w-1.5 before:h-full before:bg-red-500">
-              <span className="text-red-600 dark:text-red-400 font-bold text-[13.5px] mb-2 block">تنبيه سيولة حرج</span>
-              <p className="text-gray-600 dark:text-gray-300 text-[12px] leading-relaxed">سيولتك تكفي 3 يوماً فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي.</p>
+              <span className="text-red-600 dark:text-red-400 font-bold text-[13.5px] mb-2 block">{isArabic ? 'تنبيه سيولة حرج' : 'Critical Liquidity Alert'}</span>
+              <p className="text-gray-600 dark:text-gray-300 text-[12px] leading-relaxed">
+                {isArabic
+                  ? <>سيولتك تكفي {runwayDays} أيام فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي.</>
+                  : <>Your liquidity is only sufficient for {runwayDays} days before entering negative balance if the current situation continues.</>
+                }
+              </p>
             </div>
           </div>
         </div>

@@ -4,7 +4,7 @@ import { useThemeLang } from '../context/ThemeLangProvider';
 import WhatIfSlider from '../components/WhatIfSlider';
 import CashFlowChart from '../components/CashFlowChart';
 
-const API_URL = 'https://cbcd-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export default function SimulationPage() {
   const { lang } = useThemeLang();

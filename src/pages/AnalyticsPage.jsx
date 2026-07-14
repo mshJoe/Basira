@@ -5,24 +5,134 @@ import {
 import { useThemeLang } from '../context/ThemeLangProvider';
 import CashFlowChart from '../components/CashFlowChart';
 
+const TRANSLATIONS = {
+  ar: {
+    noDataTitle: "لا توجد بيانات بعد",
+    noDataDesc: "يرجى رفع ملف CSV من صفحة الربط ورفع الملفات",
+    latePayments: "تأخر المدفوعات",
+    cardLiquidity: "مدرج السيولة المتبقي",
+    days: "أيام",
+    dayUnit: "يوم",
+    liquidityNote: "الوقت المتبقي قبل نفاذ النقد",
+    cardOverdue: "ذمم متأخرة (+30 يوم)",
+    currency: "ر.س",
+    overdueNote: "مستحقة من عميل واحد رئيسي",
+    cardDso: "متوسط أيام التحصيل",
+    dsoNote: "مدة استلام دفعات العملاء عادةً",
+    cardCashflow: "التدفق النقدي التشغيلي",
+    cashflowNote: "صافي النقد الداخل هذا الشهر",
+    cardChange: "نسبة التغير الشهري",
+    costWarning: "بسبب ارتفاع التكاليف المباشرة",
+    cardRisk: "أعلى خطر قادم",
+    notifHeader: "التنبيهات",
+    notifAlertTitle: "تنبيه سيولة حرج",
+    notifAlertBodyPre: "سيولتك تكفي ",
+    notifAlertBodyPost: " أيام فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي."
+  },
+  en: {
+    noDataTitle: "No data yet",
+    noDataDesc: "Please upload a CSV file from the File Upload page",
+    latePayments: "Late Payments",
+    cardLiquidity: "Remaining Liquidity Runway",
+    days: "Days",
+    dayUnit: "Days",
+    liquidityNote: "Time remaining before cash out",
+    cardOverdue: "Overdue Payments (+30 Days)",
+    currency: "SAR",
+    overdueNote: "Due from one key client",
+    cardDso: "Average Collection Period (DSO)",
+    dsoNote: "Usual time to receive payments",
+    cardCashflow: "Operating Cash Flow",
+    cashflowNote: "Net cash inflow this month",
+    cardChange: "Monthly Change Ratio",
+    costWarning: "Due to rising direct costs",
+    cardRisk: "Highest Upcoming Risk",
+    notifHeader: "Notifications",
+    notifAlertTitle: "Critical Liquidity Alert",
+    notifAlertBodyPre: "Your liquidity is only sufficient for ",
+    notifAlertBodyPost: " days before entering negative balance if the current situation continues."
+  }
+};
+
 export default function AnalyticsPage() {
   const { lang } = useThemeLang();
   const isArabic = lang === 'ar';
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.ar;
 
   const [analysisData, setAnalysisData] = useState(null);
 
-  // نقرأ البيانات من localStorage لما تفتح الصفحة
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
+  // نقرأ البيانات ونجددها من الباكاند مباشرة
   useEffect(() => {
-    const loadAnalysis = () => {
+    const fetchAndRefresh = async () => {
+      // 1. Show cached data immediately from localStorage (instant display)
       const saved = localStorage.getItem('basira_analysis');
-      if (saved) setAnalysisData(JSON.parse(saved));
+      let parsedData = saved ? JSON.parse(saved) : null;
+
+      // 2. If no localStorage data, nothing to show yet
+      if (!parsedData) return;
+
+      // Show cached data instantly while we fetch fresh
+      setAnalysisData(parsedData);
+
+      try {
+        // 3. Try to get fresh data from backend /api/refresh_analysis
+        const response = await fetch(`${API_URL}/api/refresh_analysis`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            historical_data: parsedData.historical_data || [],
+            forecast_data: parsedData.forecast_data || [],
+            lang: lang
+          })
+        });
+
+        if (!response.ok) {
+          console.warn(`API refresh failed (${response.status}) — using cached data`);
+          return;
+        }
+
+        const freshData = await response.json();
+        if (!freshData.success) {
+          console.warn('API refresh returned unsuccessful — using cached data');
+          return;
+        }
+
+        // 4. Merge fresh data into cached data (preserve historical/forecast from upload)
+        const merged = {
+          ...parsedData,
+          ...freshData,
+          historical_data: parsedData.historical_data || freshData.historical_data,
+          forecast_data: parsedData.forecast_data || freshData.forecast_data,
+        };
+
+        setAnalysisData(merged);
+        localStorage.setItem('basira_analysis', JSON.stringify(merged));
+        console.log('Analytics data refreshed from backend');
+
+      } catch (error) {
+        console.warn('Failed to fetch fresh analysis data — using cached:', error.message);
+      }
     };
 
-    loadAnalysis();
+    // Listen for file upload completion events to re-fetch
+    const handleUploadEvent = () => {
+      console.log('File upload detected — refreshing analytics...');
+      fetchAndRefresh();
+    };
 
-    window.addEventListener('basira_analysis_updated', loadAnalysis);
-    return () => window.removeEventListener('basira_analysis_updated', loadAnalysis);
-  }, []);
+    // Initial load
+    fetchAndRefresh();
+
+    window.addEventListener('basira_analysis_updated', handleUploadEvent);
+    window.addEventListener('refresh_analysis', handleUploadEvent);
+
+    return () => {
+      window.removeEventListener('basira_analysis_updated', handleUploadEvent);
+      window.removeEventListener('refresh_analysis', handleUploadEvent);
+    };
+  }, [lang]);
 
   // لو ما في بيانات — نعرض رسالة
   if (!analysisData) {
@@ -37,12 +147,10 @@ export default function AnalyticsPage() {
       }}>
         <ShieldAlert size={48} style={{ opacity: 0.3 }} />
         <h2 style={{ opacity: 0.6 }}>
-          {isArabic ? 'لا توجد بيانات بعد' : 'No data yet'}
+          {t.noDataTitle}
         </h2>
         <p style={{ opacity: 0.4 }}>
-          {isArabic 
-            ? 'يرجى رفع ملف CSV من صفحة الربط ورفع الملفات' 
-            : 'Please upload a CSV file from the File Upload page'}
+          {t.noDataDesc}
         </p>
       </div>
     );
@@ -75,11 +183,11 @@ export default function AnalyticsPage() {
         Math.abs(historicalData.slice(-60, -30).reduce((s, d) => s + d.cashflow, 0) / 30) * 100).toFixed(1)
     : '0.0';
 
-  const daysToRisk = alert?.days_to_risk || 0;
+  const daysToRisk = alert?.days_to_risk || analysisData?.runway_days || 0;
   const overduePayments = analysisData?.overdue_receivables || analysisData?.overdue_payments || 0;
   const dso = analysisData?.dso || analysisData?.collection_period || analysisData?.average_collection_days || 0;
-  const highestRiskValue = analysisData?.highest_upcoming_risk || analysisData?.highest_risk_value || 12000;
-  const highestRiskTitle = analysisData?.highest_risk || (isArabic ? 'تأخر المدفوعات' : 'Late Payments');
+  const highestRiskValue = analysisData?.highest_risk_value || analysisData?.highest_upcoming_risk || 0;
+  const highestRiskTitle = analysisData?.highest_risk_description || analysisData?.highest_risk || t.latePayments;
 
   return (
     <div className="fade-in">
@@ -89,26 +197,26 @@ export default function AnalyticsPage() {
 
         {/* 1. مدة بقاء السيولة */}
         <article className="kpi-card kpi-card--ring">
-          <span className="kpi-card__label">{isArabic ? 'مدة بقاء السيولة' : 'Liquidity Runway'}</span>
+          <span className="kpi-card__label">{t.cardLiquidity}</span>
           
           <div className="kpi-ring" style={{ '--ring-percentage': `${Math.min(daysToRisk/90, 1) * 100}%` }}>
             <div className="kpi-ring__inner">
               <span className="kpi-ring__value">{daysToRisk}</span>
-              <span className="kpi-ring__unit">{isArabic ? 'يوم' : 'Days'}</span>
+              <span className="kpi-ring__unit">{t.days}</span>
             </div>
           </div>
           
-          <p className="kpi-card__note">{isArabic ? 'الوقت المتبقي قبل نفاذ النقد' : 'Time remaining before cash out'}</p>
+          <p className="kpi-card__note">{t.liquidityNote}</p>
           <span className="kpi-card__action"><ArrowUpRight size={14} /></span>
         </article>
 
         {/* 2. ذمم متأخرة */}
         <article className="kpi-card kpi-card--warning">
           <span className="kpi-priority-dot" />
-          <span className="kpi-card__label">{isArabic ? 'ذمم متأخرة (30+ يوم)' : 'Overdue Payments (30+ days)'}</span>
+          <span className="kpi-card__label">{t.cardOverdue}</span>
           
-          <h3 className="kpi-card__value">{Number(overduePayments).toLocaleString('en-US')} <span className="text-xl">{isArabic ? 'ر.س' : 'SAR'}</span></h3>
-          <p className="kpi-card__note">{isArabic ? 'مستحقة من عميل واحد رئيسي' : 'Due from one key client'}</p>
+          <h3 className="kpi-card__value">{Number(overduePayments).toLocaleString('en-US')} <span className="text-xl">{t.currency}</span></h3>
+          <p className="kpi-card__note">{t.overdueNote}</p>
           
           <div className="kpi-card__spark">
             {[40, 60, 35, 90, 50, 70].map((h, i) => (
@@ -121,10 +229,10 @@ export default function AnalyticsPage() {
 
         {/* 3. متوسط أيام التحصيل */}
         <article className="kpi-card">
-          <span className="kpi-card__label">{isArabic ? 'متوسط أيام التحصيل' : 'Average Collection Period'}</span>
+          <span className="kpi-card__label">{t.cardDso}</span>
           
-          <h3 className="kpi-card__value">{dso}</h3>
-          <p className="kpi-card__note">{isArabic ? 'مدة استلام دفعات العملاء عادةً' : 'Usual time to receive payments'}</p>
+          <h3 className="kpi-card__value">{Number(dso).toLocaleString('en-US')}</h3>
+          <p className="kpi-card__note">{t.dsoNote}</p>
           
           <div className="kpi-card__spark">
             {[55, 45, 65, 85, 60, 40].map((h, i) => (
@@ -137,10 +245,10 @@ export default function AnalyticsPage() {
 
         {/* 4. التدفق النقدي التشغيلي */}
         <article className="kpi-card kpi-card--positive">
-          <span className="kpi-card__label">{isArabic ? 'التدفق النقدي التشغيلي' : 'Operating Cash Flow'}</span>
+          <span className="kpi-card__label">{t.cardCashflow}</span>
           
-          <h3 className="kpi-card__value">+{avgForecast.toLocaleString()}</h3>
-          <p className="kpi-card__note">{isArabic ? 'صافي النقد الداخل هذا الشهر' : 'Net cash inflow this month'}</p>
+          <h3 className="kpi-card__value">+{avgForecast.toLocaleString('en-US')}</h3>
+          <p className="kpi-card__note">{t.cashflowNote}</p>
           
           <div className="kpi-card__spark">
             {[30, 50, 40, 65, 95, 70].map((h, i) => (
@@ -154,13 +262,13 @@ export default function AnalyticsPage() {
         {/* 5. نسبة التغير الشهري */}
         <article className="kpi-card kpi-card--warning">
           <span className="kpi-priority-dot" />
-          <span className="kpi-card__label">{isArabic ? 'نسبة التغير الشهري' : 'Monthly Change Ratio'}</span>
+          <span className="kpi-card__label">{t.cardChange}</span>
           
           <h3 className="kpi-card__value">
             <span className="ml-1" style={{ color: Number(changePercentage) >= 0 ? 'var(--color-amber)' : 'var(--color-green)' }}>{Number(changePercentage) >= 0 ? '↑' : '↓'}</span>
             {Math.abs(Number(changePercentage))}%
           </h3>
-          <p className="kpi-card__note">{isArabic ? 'بسبب ارتفاع التكاليف المباشرة' : 'Due to direct costs increase'}</p>
+          <p className="kpi-card__note">{t.costWarning}</p>
           
           <div className="kpi-card__spark">
             {[90, 70, 55, 45, 35, 25].map((h, i) => (
@@ -174,9 +282,9 @@ export default function AnalyticsPage() {
         {/* 6. أعلى خطر قادم */}
         <article className="kpi-card kpi-card--danger">
           <span className="kpi-priority-dot" />
-          <span className="kpi-card__label">{isArabic ? 'أعلى خطر قادم' : 'Highest Upcoming Risk'}</span>
+          <span className="kpi-card__label">{t.cardRisk}</span>
           
-          <h3 className="kpi-card__value">{Number(highestRiskValue).toLocaleString('en-US')}</h3>
+          <h3 className="kpi-card__value">{Number(highestRiskValue).toLocaleString('en-US')} <span className="text-xl">{t.currency}</span></h3>
           <p className="kpi-card__note truncate" title={highestRiskTitle}>{highestRiskTitle}</p>
           
           <div className="kpi-card__spark">
