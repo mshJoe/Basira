@@ -147,7 +147,7 @@ export default function SimulationPage() {
           </p>
           <p className="sim-feedback-card__value !text-lg" style={{ color: cashDeltaColor }}>
             {cashDelta >= 0 ? '+' : ''}
-            {isArabic ? `${cashDelta.toLocaleString('ar-SA')} ﷼` : `${cashDelta.toLocaleString()} SAR`}
+            {isArabic ? `${cashDelta.toLocaleString('en-US')} ﷼` : `${cashDelta.toLocaleString('en-US')} SAR`}
           </p>
           <p className="sim-feedback-card__detail !text-[0.65rem] !mt-1">
             {isArabic ? 'الفارق المتوقع في الرصيد التشغيلي' : 'Projected change in operational balance'}

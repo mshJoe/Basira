@@ -144,13 +144,15 @@ export default function DashboardPage() {
     <div className="fade-in">
       {/* Liquidity Alert Banner */}
       {alert && alert.days_to_risk && (
-        <div className={`p-8 mb-12 rounded-xl flex items-center gap-4 border ${bannerColors}`}>
-          <ShieldAlert size={28} className="flex-shrink-0" />
-          <p className="font-semibold m-0 text-sm md:text-base leading-relaxed">
-            {isArabic 
-              ? `سيولتك تكفي ${alert.days_to_risk} يوماً فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي`
-              : `Your liquidity is sufficient for only ${alert.days_to_risk} days before entering negative balance if the current situation continues`}
-          </p>
+        <div className="p-5 my-6 rounded-2xl flex items-center justify-between bg-red-950/20 border border-red-900/30 text-red-500" style={{ padding: '20px 24px', marginTop: '24px', marginBottom: '32px', borderRadius: '16px', display: 'flex', alignItems: 'center', width: '100%' }}>
+          <div className="flex items-center gap-3" style={{ gap: '12px' }}>
+            <ShieldAlert size={28} className="flex-shrink-0" />
+            <p className="font-semibold m-0 text-sm md:text-base leading-relaxed">
+              {isArabic 
+                ? `سيولتك تكفي ${alert.days_to_risk} يوماً فقط قبل دخول الرصيد للمنطقة السالبة إذا استمر الوضع الحالي`
+                : `Your liquidity is sufficient for only ${alert.days_to_risk} days before entering negative balance if the current situation continues`}
+            </p>
+          </div>
         </div>
       )}
 
@@ -207,8 +209,8 @@ export default function DashboardPage() {
         <MetricCard
           title={isArabic ? 'الرصيد التشغيلي المتوقع' : 'Expected Operational Balance'}
           value={isArabic
-            ? `${avgForecast.toLocaleString('ar-SA')} ﷼`
-            : `${avgForecast.toLocaleString()} SAR`}
+            ? `${avgForecast.toLocaleString('en-US')} ﷼`
+            : `${avgForecast.toLocaleString('en-US')} SAR`}
           subtitle={isArabic ? 'خلال ٣٠ يوم القادمة' : 'Over the next 30 days'}
           icon={Wallet}
           accentColor="#3B82F6"

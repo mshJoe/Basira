@@ -157,7 +157,7 @@ export default function AnalyticsPage() {
           <span className="kpi-card__label">{isArabic ? 'نسبة التغير الشهري' : 'Monthly Change Ratio'}</span>
           
           <h3 className="kpi-card__value">
-            <span className="ml-1" style={{ color: Number(changePercentage) >= 0 ? 'var(--color-green)' : 'var(--color-amber)' }}>{Number(changePercentage) >= 0 ? '↑' : '↓'}</span>
+            <span className="ml-1" style={{ color: Number(changePercentage) >= 0 ? 'var(--color-amber)' : 'var(--color-green)' }}>{Number(changePercentage) >= 0 ? '↑' : '↓'}</span>
             {Math.abs(Number(changePercentage))}%
           </h3>
           <p className="kpi-card__note">{isArabic ? 'بسبب ارتفاع التكاليف المباشرة' : 'Due to direct costs increase'}</p>
@@ -192,8 +192,9 @@ export default function AnalyticsPage() {
 
       {/* Recommendations */}
       {recommendation?.analytics_insight && (
-        <div className="bg-white dark:bg-[#131E2C] rounded-2xl p-6 mb-8 shadow-sm flex items-start gap-5">
-          <div className="text-3xl flex-shrink-0 leading-none mt-0.5">💡</div>
+        <div className="my-10 block clear-both" style={{ marginTop: '40px', marginBottom: '40px', display: 'block', width: '100%' }}>
+          <div className="p-8 rounded-2xl flex items-start gap-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800" style={{ padding: '24px', borderRadius: '16px' }}>
+            <div className="text-3xl flex-shrink-0 leading-none mt-0.5">💡</div>
             <div className="min-w-0 flex-1">
               <h3 className="text-lg m-0 font-bold text-gray-800 dark:text-gray-100 leading-snug">
                 {recommendation.analytics_insight.title}
@@ -203,13 +204,16 @@ export default function AnalyticsPage() {
               </p>
             </div>
           </div>
+        </div>
       )}
 
       {/* الرسم البياني */}
-      <CashFlowChart 
-        historicalData={historicalData}
+      <div style={{ marginTop: '24px' }}>
+        <CashFlowChart 
+          historicalData={historicalData}
         forecastData={forecastData}
-      />
+        />
+      </div>
     </div>
   );
 }
