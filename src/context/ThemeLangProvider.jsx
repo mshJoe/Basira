@@ -35,6 +35,41 @@ export function ThemeLangProvider({ children }) {
     root.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
     root.setAttribute('lang', lang);
     localStorage.setItem('basira-lang', lang);
+
+    // Refresh AI content if available and language changed
+    const savedAnalysis = localStorage.getItem('basira_analysis');
+    if (savedAnalysis) {
+      try {
+        const data = JSON.parse(savedAnalysis);
+        if (data.lang !== lang) {
+          fetch('http://127.0.0.1:8000/api/refresh_analysis', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              historical_data: data.historical_data,
+              forecast_data: data.forecast_data,
+              lang: lang
+            })
+          })
+            .then(res => res.json())
+            .then(newData => {
+              if (newData.success) {
+                const updated = {
+                  ...data,
+                  alert: newData.alert,
+                  recommendation: newData.recommendation,
+                  lang: newData.lang
+                };
+                localStorage.setItem('basira_analysis', JSON.stringify(updated));
+                window.dispatchEvent(new Event('basira_analysis_updated'));
+              }
+            })
+            .catch(console.error);
+        }
+      } catch (e) {
+        console.error('Error parsing basira_analysis for translation sync:', e);
+      }
+    }
   }, [lang]);
 
   const toggleTheme = useCallback(() => {
