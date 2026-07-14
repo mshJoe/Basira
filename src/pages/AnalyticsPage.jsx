@@ -164,6 +164,45 @@ export default function AnalyticsPage() {
     };
   }, [lang]);
 
+  // Extract data arrays (safe even when analysisData is null)
+  const forecastData = analysisData?.forecast_data || [];
+  const historicalData = analysisData?.historical_data || [];
+
+  // Compute fallback metrics from data (used when backend/AI values aren't available)
+  const computedMetrics = useMemo(() => {
+    const hist = historicalData || [];
+    const fore = forecastData || [];
+
+    let computedOverdue = 0;
+    if (hist.length > 0) {
+      const last60 = hist.slice(-60);
+      computedOverdue = last60.reduce((s, d) => s + (d.cashflow < 0 ? Math.abs(d.cashflow) : 0), 0);
+    }
+
+    let computedDso = 30;
+    if (hist.length >= 30) {
+      const last30 = hist.slice(-30);
+      const positives = last30.filter(d => d.cashflow > 0);
+      const negatives = last30.filter(d => d.cashflow < 0);
+      const avgRevenue = positives.length > 0
+        ? positives.reduce((s, d) => s + d.cashflow, 0) / positives.length
+        : Math.abs(last30.reduce((s, d) => s + d.cashflow, 0) / last30.length);
+      const totalReceivables = negatives.length > 0
+        ? Math.abs(negatives.reduce((s, d) => s + d.cashflow, 0))
+        : 0;
+      computedDso = avgRevenue > 0 ? Math.max(0, Math.round((totalReceivables / avgRevenue) * 10) / 10) : 30;
+    }
+
+    let computedRiskValue = 0;
+    if (fore.length > 0) {
+      const worst = Math.min(...fore.map(d => d.predicted || 0));
+      computedRiskValue = Math.round(Math.abs(worst) * 100) / 100;
+    }
+    const computedRiskTitle = isArabic ? 'انخفاض متوقع في التدفق النقدي' : 'Expected cash flow decline';
+
+    return { computedOverdue, computedDso, computedRiskValue, computedRiskTitle };
+  }, [historicalData, forecastData, isArabic]);
+
   // لو ما في بيانات — نعرض رسالة
   if (!analysisData) {
     return (
@@ -200,13 +239,11 @@ export default function AnalyticsPage() {
   };
 
   // حساب الرصيد التشغيلي من البيانات الحقيقية
-  const forecastData = analysisData.forecast_data || [];
   const avgForecast = forecastData.length > 0
     ? Math.round(forecastData.reduce((sum, d) => sum + d.predicted, 0) / forecastData.length)
     : 0;
 
   // حساب نسبة التغير من البيانات التاريخية
-  const historicalData = analysisData.historical_data || [];
   const changePercentage = historicalData.length >= 60
     ? (((historicalData.slice(-30).reduce((s, d) => s + d.cashflow, 0) / 30) -
         (historicalData.slice(-60, -30).reduce((s, d) => s + d.cashflow, 0) / 30)) /
@@ -214,10 +251,10 @@ export default function AnalyticsPage() {
     : '0.0';
 
   const daysToRisk = alert?.days_to_risk || analysisData?.runway_days || 0;
-  const overduePayments = analysisData?.overdue_receivables || analysisData?.overdue_payments || 0;
-  const dso = analysisData?.dso || analysisData?.collection_period || analysisData?.average_collection_days || 0;
-  const highestRiskValue = analysisData?.highest_risk_value || analysisData?.highest_upcoming_risk || 0;
-  const highestRiskTitle = analysisData?.highest_risk_description || analysisData?.highest_risk || t.latePayments;
+  const overduePayments = analysisData?.overdue_receivables ?? analysisData?.overdue_payments ?? computedMetrics.computedOverdue ?? 0;
+  const dso = analysisData?.dso ?? analysisData?.collection_period ?? analysisData?.average_collection_days ?? computedMetrics.computedDso ?? 30;
+  const highestRiskValue = analysisData?.highest_risk_value ?? analysisData?.highest_upcoming_risk ?? computedMetrics.computedRiskValue ?? 0;
+  const highestRiskTitle = analysisData?.highest_risk_description ?? analysisData?.highest_risk ?? computedMetrics.computedRiskTitle ?? t.latePayments;
 
   return (
     <div className="fade-in">

@@ -80,29 +80,47 @@ async def analyze(file: UploadFile = File(...), lang: Optional[str] = Form("ar")
         # حساب الإنذار
         alert = calculate_alert(forecast_df, df, lang)
 
-        # توليد التوصية
-        recommendation = await generate_recommendation(alert, {}, lang)
-
         # تحضير البيانات التاريخية
-        historical = df[['date', 'cashflow']].copy()
+        historical = df[['date', 'cashflow', 'sales', 'expenses']].copy()
         historical['date'] = historical['date'].dt.strftime('%Y-%m-%d')
 
         # تحضير التنبؤات
         forecast_output = forecast_df.copy()
         forecast_output['ds'] = forecast_output['ds'].dt.strftime('%Y-%m-%d')
 
+        forecast_records = forecast_output.rename(columns={
+            'ds': 'date',
+            'yhat': 'predicted',
+            'yhat_lower': 'lower',
+            'yhat_upper': 'upper'
+        }).to_dict('records')
+
+        # Get AI-computed financial metrics with deterministic fallback
+        recommendation = await generate_recommendation(
+            alert, {}, lang,
+            historical_data=historical.to_dict('records'),
+            forecast_data=forecast_records
+        )
+
         return {
             "success": True,
             "lang": lang,
             "alert": alert,
-            "recommendation": recommendation,
+            "recommendation": {
+                "analytics_insight": recommendation.get("analytics_insight"),
+                "dashboard_actions": recommendation.get("dashboard_actions", [])
+            },
             "historical_data": historical.to_dict('records'),
-            "forecast_data": forecast_output.rename(columns={
-                'ds': 'date',
-                'yhat': 'predicted',
-                'yhat_lower': 'lower',
-                'yhat_upper': 'upper'
-            }).to_dict('records')
+            "forecast_data": forecast_records,
+            "overdue_receivables": recommendation.get("overdue_receivables", 0),
+            "overdue_payments": recommendation.get("overdue_payments", 0),
+            "dso": recommendation.get("dso", 0),
+            "collection_period": recommendation.get("collection_period", 0),
+            "average_collection_days": recommendation.get("average_collection_days", 0),
+            "highest_risk_value": recommendation.get("highest_risk_value", 0),
+            "highest_upcoming_risk": recommendation.get("highest_upcoming_risk", 0),
+            "highest_risk": recommendation.get("highest_risk", ""),
+            "breakdown_items": recommendation.get("breakdown_items", [])
         }
 
     except Exception as e:
@@ -198,56 +216,41 @@ async def refresh_analysis(request: RefreshAnalysisRequest):
         })
         
         alert = calculate_alert(forecast_df, historical_df, request.lang)
-        recommendation = await generate_recommendation(alert, {}, request.lang)
 
-        # Compute overdue receivables from historical data (sum negative cashflows in last 30 days)
-        overdue_receivables = 0
-        if 'cashflow' in historical_df.columns and len(historical_df) > 0:
-            recent = historical_df.tail(60)
-            overdue_receivables = round(abs(recent[recent['cashflow'] < 0]['cashflow'].sum()), 2)
+        # Convert back to records for recommender
+        forecast_records = forecast_df.rename(columns={
+            'ds': 'date',
+            'yhat': 'predicted',
+            'yhat_lower': 'lower',
+            'yhat_upper': 'upper'
+        }).to_dict('records')
 
-        # Estimate DSO (Days Sales Outstanding) from historical data
-        dso = 30
-        if 'cashflow' in historical_df.columns and len(historical_df) >= 30:
-            recent_30 = historical_df.tail(30)['cashflow']
-            avg_daily_cf = abs(recent_30.mean())
-            # Use average positive cashflow as revenue proxy
-            positive_cf = recent_30[recent_30 > 0]
-            avg_revenue = positive_cf.mean() if len(positive_cf) > 0 else avg_daily_cf
-            # Receivables are overdue payments (negative cashflows)
-            negative_cf = recent_30[recent_30 < 0]
-            total_receivables = abs(negative_cf.sum()) if len(negative_cf) > 0 else 0
-            # Estimate DSO: how many days of revenue are tied up in receivables
-            dso = round(total_receivables / avg_revenue, 1) if avg_revenue > 0 else 30
-            dso = max(dso, 0)  # Clamp to 0 minimum
+        # Get AI-computed metrics + recommendation with deterministic fallback
+        recommendation = await generate_recommendation(
+            alert, {}, request.lang,
+            historical_data=request.historical_data,
+            forecast_data=forecast_records
+        )
 
-        # Find highest upcoming risk from forecast
-        highest_risk_value = 0
-        highest_risk_title = ""
-        if 'yhat' in forecast_df.columns and len(forecast_df) > 0:
-            worst_forecast = forecast_df.loc[forecast_df['yhat'].idxmin()]
-            highest_risk_value = round(abs(worst_forecast['yhat']), 2)
-            days_out = forecast_df['ds'].iloc[-1] if 'ds' in forecast_df.columns else ""
-            if request.lang == 'ar':
-                highest_risk_title = f"انخفاض متوقع في التدفق النقدي"
-            else:
-                highest_risk_title = "Expected cash flow decline"
-
-        print(f"--- /api/refresh_analysis SUCCESS --- alert_color: {alert.get('color', 'unknown')}, overdue: {overdue_receivables}, dso: {dso}")
+        print(f"--- /api/refresh_analysis SUCCESS --- alert_color: {alert.get('color', 'unknown')}")
 
         return {
             "success": True,
             "lang": request.lang,
             "alert": alert,
-            "recommendation": recommendation,
-            "overdue_receivables": overdue_receivables,
-            "overdue_payments": overdue_receivables,
-            "dso": dso,
-            "collection_period": dso,
-            "average_collection_days": dso,
-            "highest_risk_value": highest_risk_value,
-            "highest_upcoming_risk": highest_risk_value,
-            "highest_risk": highest_risk_title
+            "recommendation": {
+                "analytics_insight": recommendation.get("analytics_insight"),
+                "dashboard_actions": recommendation.get("dashboard_actions", [])
+            },
+            "overdue_receivables": recommendation.get("overdue_receivables", 0),
+            "overdue_payments": recommendation.get("overdue_payments", 0),
+            "dso": recommendation.get("dso", 0),
+            "collection_period": recommendation.get("collection_period", 0),
+            "average_collection_days": recommendation.get("average_collection_days", 0),
+            "highest_risk_value": recommendation.get("highest_risk_value", 0),
+            "highest_upcoming_risk": recommendation.get("highest_upcoming_risk", 0),
+            "highest_risk": recommendation.get("highest_risk", ""),
+            "breakdown_items": recommendation.get("breakdown_items", [])
         }
     except Exception as e:
         print("--- /api/refresh_analysis ERROR ---")

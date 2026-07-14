@@ -42,15 +42,17 @@ def detect_reasons(df, lang: str = 'ar') -> list:
         last_30 = df.tail(30)
         prev_30 = df.iloc[-60:-30]
         
-        expense_change = (last_30['expenses'].mean() - prev_30['expenses'].mean()) / prev_30['expenses'].mean()
-        if expense_change > 0.10:
-            pct = round(expense_change*100)
-            reasons.append(f"ارتفاع تكاليف التشغيل بنسبة {pct}% هذا الشهر" if lang == 'ar' else f"Operating costs increased by {pct}% this month")
+        if 'expenses' in df.columns:
+            expense_change = (last_30['expenses'].mean() - prev_30['expenses'].mean()) / prev_30['expenses'].mean()
+            if expense_change > 0.10:
+                pct = round(expense_change*100)
+                reasons.append(f"ارتفاع تكاليف التشغيل بنسبة {pct}% هذا الشهر" if lang == 'ar' else f"Operating costs increased by {pct}% this month")
         
-        sales_change = (last_30['sales'].mean() - prev_30['sales'].mean()) / prev_30['sales'].mean()
-        if sales_change < -0.10:
-            pct = round(abs(sales_change)*100)
-            reasons.append(f"انخفاض المبيعات بنسبة {pct}% مقارنة بالشهر الماضي" if lang == 'ar' else f"Sales decreased by {pct}% compared to last month")
+        if 'sales' in df.columns:
+            sales_change = (last_30['sales'].mean() - prev_30['sales'].mean()) / prev_30['sales'].mean()
+            if sales_change < -0.10:
+                pct = round(abs(sales_change)*100)
+                reasons.append(f"انخفاض المبيعات بنسبة {pct}% مقارنة بالشهر الماضي" if lang == 'ar' else f"Sales decreased by {pct}% compared to last month")
     
     reasons.append("موعد دفع الإيجار والرواتب خلال أسبوعين" if lang == 'ar' else "Rent and payroll due in two weeks")
     
