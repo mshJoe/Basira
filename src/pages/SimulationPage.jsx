@@ -33,7 +33,7 @@ export default function SimulationPage() {
 
     const callWhatIf = async () => {
       try {
-        const response = await fetch(`https://05e9-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/whatif`, {
+        const response = await fetch(`https://a2fc-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/whatif`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

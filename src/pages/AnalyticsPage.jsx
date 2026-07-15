@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
 
       try {
         // 3. Try to get fresh data from backend /api/refresh_analysis
-        const response = await fetch(`https://05e9-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/refresh_analysis`, {
+        const response = await fetch(`https://a2fc-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/refresh_analysis`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

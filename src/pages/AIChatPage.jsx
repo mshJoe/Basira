@@ -122,7 +122,7 @@ User question: ${text}
 
 Answer in English concisely, practically, and directly. Use specific numbers from the user's data. Do not exceed 5 sentences.`;
 
-      const response = await fetch(`https://05e9-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/chat`, {
+      const response = await fetch(`https://a2fc-2001-16a4-428-478f-608c-aead-f4f0-ba95.ngrok-free.app/api/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
