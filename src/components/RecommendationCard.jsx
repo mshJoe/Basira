@@ -5,7 +5,7 @@ import { useThemeLang } from '../context/ThemeLangProvider';
    ═══════════════════════════════════════════════════════ */
 const TEXT = {
   ar: {
-    sectionTitle: 'توصيات الذكاء الاصطناعي',
+    sectionTitle: 'توصيات بصيرة',
     sectionSubtitle: 'إجراءات مقترحة بناءً على تحليل البيانات',
     tags: {
       highPriority: 'أولوية عالية',
@@ -18,7 +18,7 @@ const TEXT = {
     },
   },
   en: {
-    sectionTitle: 'AI Recommendations',
+    sectionTitle: 'Basira Insights',
     sectionSubtitle: 'Suggested actions based on data analysis',
     tags: {
       highPriority: 'High Priority',
